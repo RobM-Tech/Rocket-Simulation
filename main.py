@@ -3,7 +3,7 @@ import rocket
 
 def main():
     # Initialize the rocket
-    my_rocket = rocket.Rocket(velocity=0, altitude=0, acceleration=9.81)
+    my_rocket = rocket.Rocket()
     dt =  0.1  # Time step in seconds
     t = 0  # Initial time
     escape_altitude = 10000  # Escape altitude in meters
@@ -16,7 +16,7 @@ def main():
         my_rocket.update(dt)
         t += dt
         telemetry = my_rocket.get_telemetry()
-        print(f"\rTime: {t:.2f}s | Velocity: {telemetry["velocity"]:.2f} m/s | Altitude: {telemetry["altitude"]:.2f} m | Acceleration: {telemetry["acceleration"]:.2f} m/s^2", end="", flush=True)
+        print(f"\r| Time: {t:.2f}s{telemetry}", end="", flush=True)
         time.sleep(dt)  # Wait for one second before the next iteration
     print("\n")
     print("SPACE REACHED!!!")
