@@ -1,10 +1,10 @@
 class Rocket:
-    def __init__(self):
-        self.velocity = 0 #Initial velocity in m/s
-        self.altitude = 15 #KSC launch pad altitude in meters
-        self.acceleration = 0 #Initial acceleration in m/s^2
-        self.mass = 549000 #Mass in kg
-        self.thrust = 7607000 #Thrust in Newtons
+    def __init__(self, velocity, altitude, acceleration, mass, thrust):
+        self.velocity = velocity #Initial velocity in m/s
+        self.altitude = altitude #KSC launch pad altitude in meters
+        self.acceleration = acceleration #Initial acceleration in m/s^2
+        self.mass = mass #Mass in kg
+        self.thrust = thrust #Thrust in Newtons
         
 
     def calc_weight(self):
