@@ -1,128 +1,181 @@
-# 🚀 Rocket Simulator — Phase 1 (Proof of Life)
+Rocket Launch & Telemetry Simulation
 
-## Project Overview
+A physics-based rocket launch simulation written in Python and developed incrementally in clearly defined phases.
+The project focuses on Newtonian mechanics, time-stepped simulation, and clean software design.
 
-This project is a **simple rocket launch simulation written in Python**. Phase 1 focuses on proving that a time-stepped physics simulation works by showing a rocket moving upward under constant thrust and gravity.
-
-This phase is intentionally minimal. The goal is **not realism**, but correctness, clarity, and a working foundation for future phases.
-
----
-
-## 🎯 Phase 1 Goal
-
-> Build the smallest possible program that simulates vertical motion over time and prints live telemetry to the terminal.
-
-If the rocket moves and the numbers make sense, Phase 1 is a success.
-
----
-
-## ✅ Features Included (Phase 1 Scope)
-
-* Vertical-only motion
-* Constant thrust
-* Constant mass
-* Constant gravity (9.81 m/s²)
-* Fixed time step simulation loop
-* Terminal telemetry output
-
----
-
-## 🚫 Features Explicitly Excluded
-
-The following are **not allowed in Phase 1** and are reserved for later phases:
-
-* Fuel or burn rate
-* Changing mass
-* Drag or atmosphere
-* Angled launches
-* Staging
-* File output
-* Graphs or visualization
-* GUI or animation
-
----
-
-## 🧠 Physics Model (Simplified)
-
-The simulation uses Newton's Second Law:
-
+The simulation is CLI-based and prioritizes correctness and clarity over visual polish.
 ```
-F = m * a
+## ▶ How to Run
+
+**Requirements:**
+- Python 3.10+
+
+**Run the simulation:**
+```bash
+python3 main.py
 ```
+The simulation will print live telemetry to the terminal and exit once the success condition is met.
 
-Where:
-
-* Thrust provides upward force
-* Gravity provides constant downward acceleration
-
-Acceleration is calculated as:
-
-```
-a = (thrust / mass) - gravity
-```
-
-Velocity and altitude are updated incrementally each time step.
-
----
-
-## 📊 Telemetry Output
-
-At each time step, the program prints:
-
-* Time (seconds)
-* Altitude (meters)
-* Velocity (m/s)
-
-Example output:
-
-```
-Time: 2.5s | Altitude: 84.3m | Velocity: 38.7m/s
-```
-
----
-
-## 🧱 Project Structure (Phase 1)
-
+📁 Project Structure
 ```
 rocket_sim/
-├── main.py   # Contains rocket class and simulation loop
-└── README.md
+├── main.py      # Simulation loop, time tracking, telemetry output
+├── rocket.py    # Rocket state and physics calculations
+├── README.md
+└── .gitignore
 ```
 
 ---
 
-## ▶️ How to Run
+✅ Phase 1 — Simulation Foundation (Completed)
 
-1. Ensure Python 3.10+ is installed
-2. Navigate to the project directory
-3. Run:
+Goal:
+Establish a working simulation loop that produces visible, stable output.
 
+Implemented:
+
+Time-stepped update loop (dt)
+
+Rocket state tracking (altitude, velocity)
+
+Single-line telemetry output
+
+Basic success condition based on altitude
+
+Outcome:
+A functioning program that simulates a simple ascent and validates the overall structure.
+
+---
+
+✅ Phase 2 — Physics-Based Vertical Ascent (Completed)
+
+Goal:
+Simulate a realistic vertical rocket ascent using Newtonian physics.
+
+Implemented:
+
+Thrust-based acceleration model:
 ```
-python main.py
+a = (thrust / mass) - g
 ```
 
+Constant gravity model (g = 9.81 m/s²)
+
+Falcon 9–inspired constants:
+
+Mass: 549,000 kg
+
+Thrust: 7,607,000 N
+
+Smooth integration of:
+
+Acceleration → Velocity → Altitude
+
+Clear separation of responsibilities:
+
+Rocket owns physics and state
+
+main owns time, loop, and output
+
+Telemetry output includes:
+
+-Time
+
+-Velocity
+
+-Altitude
+
+-Acceleration
+
+-Mass
+
+-Thrust
+
+Success Condition:
+
+Rocket reaches target “space” altitude
+
+Mission success message printed
+
+Outcome:
+A physically believable vertical ascent simulation with correct force modeling.
+
 ---
 
-## 📌 Phase 1 Completion Criteria
+🧭 Phase 3 — Fuel Burn & Variable Mass (Planned)
 
-Phase 1 is considered complete when:
+Goal:
+Introduce mass change over time and increasing acceleration.
 
-* The program runs without errors
-* The rocket altitude changes over time
-* Telemetry prints every time step
-* The physics behavior can be explained
+Planned Features:
 
-Once complete, development moves to **Phase 2: Fuel, Mass Change, and Data Logging**.
+Fuel mass and burn rate
+
+Decreasing total mass per timestep
+
+Increasing acceleration as mass drops
+
+Engine cutoff when fuel is depleted
+
+Expanded success and failure states
 
 ---
 
-## 🛠 Future Phases (High-Level)
+🌍 Phase 4 — Orbital Mechanics (Planned)
 
-* **Phase 2:** Fuel burn, mass change, apogee, telemetry logging
-* **Phase 3:** Visualization, plotting, configuration, analysis
+Goal:
+Transition from altitude-based success to orbit-based success.
+
+Planned Features:
+
+Orbital velocity thresholds (e.g., LEO)
+
+Success based on:
+
+Altitude and
+
+Orbital velocity
+
+Separation of ascent and orbital logic
+
+Foundation for multi-stage rockets
 
 ---
 
-## Author Notes
+🚫 Current Non-Goals
 
-This project is designed as a learning-focused simulation emphasizing clarity, incremental development, and engineering discipline.
+The following are intentionally out of scope for now:
+
+Atmospheric drag
+
+Staging
+
+Multi-axis motion
+
+Guidance or control systems
+
+Graphical visualization
+
+***
+
+🧠 Design Philosophy
+
+Build one correct layer at a time
+
+Avoid premature abstraction
+
+Prioritize clarity over complexity
+
+Physics before features
+
+***
+
+📌 Project Status
+
+Phase 1: ✅ Complete
+
+Phase 2: ✅ Complete
+
+Phase 3: 🔜 Planned
+
+Phase 4: 🔜 Planned
