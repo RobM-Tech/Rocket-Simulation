@@ -1,41 +1,86 @@
 class Rocket:
-    def __init__(self, velocity, altitude, acceleration, mass, thrust):
+    def __init__(self, velocity, altitude, acceleration):
         self.velocity = velocity #Initial velocity in m/s
         self.altitude = altitude #KSC launch pad altitude in meters
         self.acceleration = acceleration #Initial acceleration in m/s^2
-        self.mass = mass #Mass in kg
-        self.thrust = thrust #Thrust in Newtons
+        self.stages = []
         
+    def attach_stage(self, stage):
+        self.stages.append(stage)
+        stage.attached = True
+
 
     def calc_weight(self):
-        weight = self.mass * 9.81
+        weight = self.total_mass * 9.81
         return weight
 
     def calc_net_force(self):
         weight = self.calc_weight()
-        netForce = self.thrust - weight
+        for stage in self.stages:
+            if stage.active == True:
+                netForce = stage.thrust - weight
+            else:
+                netForce = 0
+        
         return netForce
 
     def calc_acceleration(self):
         netForce = self.calc_net_force()
-        self.acceleration = netForce / self.mass
+        self.acceleration = netForce / self.total_mass
 
+    def calc_fuel_burn(self, dt):
+        burn_rate = 2848 #kg/s
+        for stage in self.stages:
+            if stage.active == True:
+                stage.fuel_mass -= burn_rate * dt
+                if stage.fuel_mass == 0:
+                    stage.active = False
+
+    
+    @property
+    def total_mass(self):
+        return sum(stage.calc_total_mass() for stage in self.stages if stage.attached)
 
     def update(self, dt):
+        for stage in self.stages:
+            stage.active = True
+        self.calc_fuel_burn(dt)
         self.calc_acceleration()
         self.velocity += self.acceleration * dt #Update velocity based on acceleration and time step
         self.altitude += self.velocity * dt #Update altitude based on velocity and time step
         if self.altitude < 15:
             self.altitude = 15 #Ensure altitude does not go below KSC launch pad altitude for testing purposes
-
+        
 
 
     def get_telemetry(self):
+        t_mass = self.total_mass
+        thrust = 0
+        for stage in self.stages:
+            thrust = stage.thrust
         telemetry = (
                      f"| Velocity: {self.velocity:.2f} m/s "
                      f"| Altitude: {self.altitude:.2f} m "
                      f"| Acceleration: {self.acceleration:.2f} m/s^2 "
-                     f"| Mass: {self.mass:.2f} kg "
-                     f"| Thrust {self.thrust} N |"
+                     f"| Mass: {t_mass:.2f} kg "
+                     f"| Thrust {thrust} N |"
                      )
         return telemetry
+
+
+
+# Define a stage that Rocket() gets data from
+class Stage:
+    def __init__(self, dry_mass, fuel_mass, thrust):
+        self.dry_mass = dry_mass
+        self.fuel_mass = fuel_mass
+        self.thrust = thrust
+        self.attached = False
+        self.active = False
+
+
+        
+    def calc_total_mass(self):
+        return self.fuel_mass + self.dry_mass
+
+        
