@@ -16,23 +16,30 @@ class Rocket:
 
     def calc_net_force(self):
         weight = self.calc_weight()
+
         for stage in self.stages:
             if stage.active == True:
                 netForce = stage.thrust - weight
             else:
-                netForce = 0
+                netForce = 0.00
         
         return netForce
 
     def calc_acceleration(self):
+        for stage in self.stages:
+                if self.acceleration > 35:
+                    stage.active = False
+                else:
+                    stage.active = True
+
         netForce = self.calc_net_force()
         self.acceleration = netForce / self.total_mass
 
     def calc_fuel_burn(self, dt):
-        burn_rate = 2848 #kg/s
+
         for stage in self.stages:
             if stage.active == True:
-                stage.fuel_mass -= burn_rate * dt
+                stage.fuel_mass -= stage.burn_rate * dt
                 if stage.fuel_mass == 0:
                     stage.active = False
 
@@ -42,18 +49,22 @@ class Rocket:
         return sum(stage.calc_total_mass() for stage in self.stages if stage.attached)
 
     def update(self, dt):
+
         for stage in self.stages:
             stage.active = True
+
         self.calc_fuel_burn(dt)
         self.calc_acceleration()
         self.velocity += self.acceleration * dt #Update velocity based on acceleration and time step
         self.altitude += self.velocity * dt #Update altitude based on velocity and time step
-        if self.altitude < 15:
-            self.altitude = 15 #Ensure altitude does not go below KSC launch pad altitude for testing purposes
+        if self.altitude < 0:
+            return print("Critical Error, CRASH")
+            
         
 
 
     def get_telemetry(self):
+        #Receive telemetry data and format in to readable data
         t_mass = self.total_mass
         thrust = 0
         for stage in self.stages:
@@ -71,10 +82,11 @@ class Rocket:
 
 # Define a stage that Rocket() gets data from
 class Stage:
-    def __init__(self, dry_mass, fuel_mass, thrust):
+    def __init__(self, dry_mass, fuel_mass, thrust, burn_rate):
         self.dry_mass = dry_mass
         self.fuel_mass = fuel_mass
         self.thrust = thrust
+        self.burn_rate = burn_rate
         self.attached = False
         self.active = False
 
