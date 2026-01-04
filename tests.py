@@ -12,9 +12,7 @@ def main():
 
     Falcon_9.update(dt)
     print(Falcon_9.get_telemetry())
-    #for stage in Falcon_9.stages:
-     #   stage.active = True
-      #  print(Falcon_9.calc_acceleration())
+    
 
 if __name__ == "__main__":
     main()

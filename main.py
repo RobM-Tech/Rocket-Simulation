@@ -15,22 +15,22 @@ def main():
     
 
     # Launch count down. For fun!
-    '''cd = 10
+    cd = 10
     while cd > 0:
-            print(f"\rLaunch in t-minus: {cd:.1f}s", end="", flush=True)
-            cd -= 1
-            time.sleep(1)'''
+            print(f"\rLaunch in t-minus: {cd:.2f}s", end="", flush=True)
+            cd -= dt
+            time.sleep(dt)
 
     
     while Falcon_9.altitude < stage_one_seperation:
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)
         t += dt
+        
         #HH:MM:SS.ss setup
         hh = int(t // 3600)
         mm = int((t % 3600) // 60)
         ss = t % 60
-
 
         time_str = (
                     f"{hh:02d}:"

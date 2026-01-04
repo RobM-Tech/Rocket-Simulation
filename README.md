@@ -25,6 +25,16 @@ rocket_sim/
 └── .gitignore
 ```
 
+📌 Project Status
+
+Phase 1: ✅ Complete
+
+Phase 2: ✅ Complete
+
+Phase 3: ✅ Complete
+
+Phase 4: 🔜 Planned
+
 ---
 
 ✅ Phase 1 — Simulation Foundation (Completed)
@@ -67,9 +77,7 @@ Mass: 549,000 kg
 
 Thrust: 7,607,000 N
 
-Smooth integration of:
-
-Acceleration → Velocity → Altitude
+Smooth integration of: Acceleration → Velocity → Altitude
 
 Clear separation of responsibilities:
 
@@ -78,18 +86,10 @@ Rocket owns physics and state
 main owns time, loop, and output
 
 Telemetry output includes:
-
--Time
-
--Velocity
-
--Altitude
-
--Acceleration
-
--Mass
-
--Thrust
+```
+| Time: 00:02:08.30s | Velocity: 1827.96 m/s | Altitude: 80057.48 m
+| Acceleration: 35.45 m/s^2 | Mass: 168071.60 kg | Thrust 7607000 N |
+```
 
 Success Condition:
 
@@ -102,22 +102,54 @@ A physically believable vertical ascent simulation with correct force modeling.
 
 ---
 
-🧭 Phase 3 — Fuel Burn & Variable Mass (Planned)
+🚀 Current Features (Phase 3)
+🧩 Architecture
 
-Goal:
-Introduce mass change over time and increasing acceleration.
+Rocket
 
-Planned Features:
+Owns motion state: velocity, altitude, acceleration
 
-Fuel mass and burn rate
+Aggregates one or more Stage objects
 
-Decreasing total mass per timestep
+Computes net force, acceleration, and kinematics
 
-Increasing acceleration as mass drops
+Stage
 
-Engine cutoff when fuel is depleted
+Owns physical properties:
 
-Expanded success and failure states
+dry_mass
+
+fuel_mass
+
+thrust
+
+burn_rate
+
+Computes its own total mass
+
+Can be activated/deactivated dynamically
+
+This follows composition over inheritance and clean separation of responsibility.
+
+🔥 Physics Model
+
+Constant thrust per active stage
+
+Fuel mass decreases over time based on burn_rate × dt
+
+Rocket mass is computed dynamically from attached stages
+
+Acceleration calculated using:
+```
+F_net = thrust − weight
+a = F_net / total_mass
+```
+
+Gravity fixed at 9.81 m/s²
+
+Simple G-limit logic:
+
+Stage deactivates when acceleration exceeds 35 m/s²
 
 ---
 
@@ -170,12 +202,3 @@ Physics before features
 
 ***
 
-📌 Project Status
-
-Phase 1: ✅ Complete
-
-Phase 2: ✅ Complete
-
-Phase 3: 🔜 Planned
-
-Phase 4: 🔜 Planned
