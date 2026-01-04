@@ -4,11 +4,21 @@ class Rocket:
         self.altitude = altitude #KSC launch pad altitude in meters
         self.acceleration = acceleration #Initial acceleration in m/s^2
         self.stages = []
-        
+
+    @property
+    def total_mass(self):
+        return sum(stage.calc_total_mass() for stage in self.stages if stage.attached)
+    
+### Stage states
+      
     def attach_stage(self, stage):
         self.stages.append(stage)
         stage.attached = True
 
+    def detach_stage(self, stage):
+        pass
+
+### main calculations
 
     def calc_weight(self):
         weight = self.total_mass * 9.81
@@ -34,26 +44,15 @@ class Rocket:
 
         netForce = self.calc_net_force()
         self.acceleration = netForce / self.total_mass
-
-    def calc_fuel_burn(self, dt):
-
-        for stage in self.stages:
-            if stage.active == True:
-                stage.fuel_mass -= stage.burn_rate * dt
-                if stage.fuel_mass == 0:
-                    stage.active = False
-
     
-    @property
-    def total_mass(self):
-        return sum(stage.calc_total_mass() for stage in self.stages if stage.attached)
+
 
     def update(self, dt):
 
         for stage in self.stages:
             stage.active = True
+            stage.update(dt)
 
-        self.calc_fuel_burn(dt)
         self.calc_acceleration()
         self.velocity += self.acceleration * dt #Update velocity based on acceleration and time step
         self.altitude += self.velocity * dt #Update altitude based on velocity and time step
@@ -61,7 +60,7 @@ class Rocket:
             return print("Critical Error, CRASH")
             
         
-
+    
 
     def get_telemetry(self):
         #Receive telemetry data and format in to readable data
@@ -89,10 +88,19 @@ class Stage:
         self.burn_rate = burn_rate
         self.attached = False
         self.active = False
+        self.MECO = False
 
 
         
     def calc_total_mass(self):
         return self.fuel_mass + self.dry_mass
+    
+
+    def update(self, dt):
+        if self.active and self.fuel_mass > 0:
+            self.fuel_mass -= self.burn_rate * dt
+            if self.fuel_mass <= 0:
+                self.fuel_mass = 0
+                self.active = False
 
         

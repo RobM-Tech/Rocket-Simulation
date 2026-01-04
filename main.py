@@ -15,14 +15,17 @@ def main():
     
 
     # Launch count down. For fun!
-    cd = 10
+    cd = 3
     while cd > 0:
-            print(f"\rLaunch in t-minus: {cd:.2f}s", end="", flush=True)
+            print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)
             cd -= dt
             time.sleep(dt)
 
+    print("\nLaunch!!")
+    time.sleep(.5)
     
     while Falcon_9.altitude < stage_one_seperation:
+  
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)
         t += dt
@@ -37,9 +40,11 @@ def main():
                     f"{mm:02d}:"
                     f"{ss:05.2f}"
                     )
-
+        
         telemetry = Falcon_9.get_telemetry()
         print(f"\r| Time: {time_str}s {telemetry}", end="", flush=True)
+
+        
         time.sleep(dt)  # Wait for one second before the next iteration
     print("\n")
     print("SPACE REACHED!!!")
