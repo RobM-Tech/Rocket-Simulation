@@ -5,7 +5,8 @@ class stage_state(Enum):
     ATTACHED = 2
     IGNITED = 3
     BURNED_OUT = 4
-    SEPARATED = 5
+    MECO = 5
+    SEPARATED = 6
 
 
 
@@ -18,7 +19,12 @@ class Stage:
         self.thrust = thrust
         self.burn_rate = burn_rate
         
-    
+    def __repr__(self):
+        return f"""Stage(
+        state={self.state})
+        dry mass={self.dry_mass}
+        fuel mass={self.fuel_mass}
+        )"""
         
     def calc_total_mass(self):
         return self.fuel_mass + self.dry_mass
@@ -47,6 +53,9 @@ class Stage:
     
     def is_burned_out(self):
         return self.state == stage_state.BURNED_OUT
+    
+    def is_meco(self):
+        return self.state == stage_state.MECO
     
     def is_separated(self):
         return self.state == stage_state.SEPARATED
