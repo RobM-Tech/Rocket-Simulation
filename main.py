@@ -1,15 +1,21 @@
 import time
-import rocket
+import rocket, stage
 
 def main():
     # Initialize the rocket
+
     Falcon_9 = rocket.Rocket(0, 15, 0)
+
     #Initialize Stage(s)
-    stage1 = rocket.Stage(31300, 502170, 7607000, 2848)
+
+    stage1 = stage.Stage(25600, 409500, 7607000, 2848)
     Falcon_9.attach_stage(stage1)
+    stage2 = stage.Stage(4000, 92670, 981000, 280)
+    Falcon_9.attach_stage(stage2)
     stage_one_seperation = 80000  # Escape altitude in meters
 
-    #Time 
+    #Time
+     
     dt =  0.1  # Time step in seconds
     t = 0  # Initial time
     
@@ -43,7 +49,6 @@ def main():
         
         telemetry = Falcon_9.get_telemetry()
         print(f"\r| Time: {time_str}s {telemetry}", end="", flush=True)
-
         
         time.sleep(dt)  # Wait for one second before the next iteration
     print("\n")

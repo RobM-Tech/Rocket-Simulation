@@ -1,19 +1,21 @@
+from stage import stage_state, Stage
 class Rocket:
     def __init__(self, velocity, altitude, acceleration):
         self.velocity = velocity #Initial velocity in m/s
-        self.altitude = altitude #KSC launch pad altitude in meters
+        self.altitude = altitude 
         self.acceleration = acceleration #Initial acceleration in m/s^2
+        self.current_stage = None
         self.stages = []
 
     @property
     def total_mass(self):
-        return sum(stage.calc_total_mass() for stage in self.stages if stage.attached)
+        return sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited())
     
 ### Stage states
       
     def attach_stage(self, stage):
         self.stages.append(stage)
-        stage.attached = True
+        stage.state = stage_state.ATTACHED
 
     def detach_stage(self, stage):
         pass
@@ -26,32 +28,28 @@ class Rocket:
 
     def calc_net_force(self):
         weight = self.calc_weight()
+        netForce = 0.00
+        if self.current_stage != None:
+            netforce = self.current_stage.thrust - weight
+            return netforce
 
-        for stage in self.stages:
-            if stage.active == True:
-                netForce = stage.thrust - weight
-            else:
-                netForce = 0.00
         
         return netForce
 
     def calc_acceleration(self):
-        for stage in self.stages:
-                if self.acceleration > 35:
-                    stage.active = False
-                else:
-                    stage.active = True
-
         netForce = self.calc_net_force()
         self.acceleration = netForce / self.total_mass
     
 
 
     def update(self, dt):
-
+                
         for stage in self.stages:
-            stage.active = True
-            stage.update(dt)
+            if self.stage_is_eligible(stage):
+                self.current_stage = stage
+                break
+        self.current_stage.state = stage_state.IGNITED
+        self.current_stage.update(dt)
 
         self.calc_acceleration()
         self.velocity += self.acceleration * dt #Update velocity based on acceleration and time step
@@ -66,8 +64,9 @@ class Rocket:
         #Receive telemetry data and format in to readable data
         t_mass = self.total_mass
         thrust = 0
-        for stage in self.stages:
-            thrust = stage.thrust
+        if self.current_stage != None:
+            thrust = self.current_stage.thrust
+        
         telemetry = (
                      f"| Velocity: {self.velocity:.2f} m/s "
                      f"| Altitude: {self.altitude:.2f} m "
@@ -78,29 +77,11 @@ class Rocket:
         return telemetry
 
 
+    #Helpers
 
-# Define a stage that Rocket() gets data from
-class Stage:
-    def __init__(self, dry_mass, fuel_mass, thrust, burn_rate):
-        self.dry_mass = dry_mass
-        self.fuel_mass = fuel_mass
-        self.thrust = thrust
-        self.burn_rate = burn_rate
-        self.attached = False
-        self.active = False
-        self.MECO = False
-
-
-        
-    def calc_total_mass(self):
-        return self.fuel_mass + self.dry_mass
-    
-
-    def update(self, dt):
-        if self.active and self.fuel_mass > 0:
-            self.fuel_mass -= self.burn_rate * dt
-            if self.fuel_mass <= 0:
-                self.fuel_mass = 0
-                self.active = False
+    def stage_is_eligible(self, stage):
+        if stage.state == stage_state.ATTACHED or stage.state == stage_state.IGNITED and stage.fuel_mass > 0:
+            return True
+        return False
 
         
