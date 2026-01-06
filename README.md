@@ -1,194 +1,148 @@
 Rocket Launch & Telemetry Simulation
 
-A physics-based rocket launch simulation written in Python and developed incrementally in clearly defined phases.
-The project focuses on Newtonian mechanics, time-stepped simulation, and clean software design.
+A physics-based rocket launch simulation in Python, designed incrementally with a focus on Newtonian mechanics, multi-stage rockets, and clean software design. The simulation is CLI-based, prioritizing accuracy, telemetry clarity, and modular architecture over graphical polish.
 
-The simulation is CLI-based and prioritizes correctness and clarity over visual polish.
+▶ Features (Current State)
+
+---
+
+Multi-Stage Rocket Simulation
+
+The Rocket class aggregates one or more Stage objects.
+
+Each Stage has:
+
+dry_mass, fuel_mass, thrust, burn_rate
+
+Lifecycle states: CREATED, ATTACHED, IGNITED, BURNED_OUT, SEPARATED
+
+Handles its own fuel consumption and mass updates
+
+The rocket controls stage states, including ignition, MECO, and separation, via a state machine.
+
+---
+
+Physics & Motion
+
+Time-stepped simulation (dt) updates velocity and altitude each tick.
+
+Net force & acceleration calculated dynamically:
+
+F_net = thrust − weight
+
+a = F_net / total_mass
+
+Gravity fixed at 9.81 m/s².
+
+G-limit logic: a stage automatically deactivates if acceleration exceeds 35 m/s².
+
+---
+
+Telemetry
+
+Live, terminal-friendly telemetry:
 ```
-## ▶ How to Run
+Time | Velocity | Altitude | Acceleration | Mass | Thrust | Stage States
+```
 
-**Requirements:**
-- Python 3.10+
+Updates in place to avoid clutter.
 
-**Run the simulation:**
-```bash
+Shows Rocket state, Current stage, and Next stage.
+
+---
+
+Multi-Stage Flight
+
+Stage separation triggered at target conditions (altitude, velocity).
+
+current_stage and next_stage tracking ensures smooth stage handoff.
+
+Rocket mass dynamically recalculated from all attached stages.
+
+Supports ignition delays between stages without blocking simulation ticks.
+
+---
+
+▶ How to Run
+
+Requirements:
+
+Python 3.10+
+
+Run the simulation:
+```
 python3 main.py
 ```
-The simulation will print live telemetry to the terminal and exit once the success condition is met.
+---
+
+Telemetry prints live in the terminal.
+
+Simulation exits when mission success is reached.
 
 📁 Project Structure
 ```
 rocket_sim/
 ├── main.py      # Simulation loop, time tracking, telemetry output
-├── rocket.py    # Rocket state and physics calculations
+├── rocket.py    # Rocket class, physics, stage controller
+├── stage.py     # Stage class, fuel, states, helpers
 ├── README.md
 └── .gitignore
 ```
 
-📌 Project Status
-
-Phase 1: ✅ Complete
-
-Phase 2: ✅ Complete
-
-Phase 3: ✅ Complete
-
-Phase 4: 🔜 Planned
-
 ---
 
-✅ Phase 1 — Simulation Foundation (Completed)
+🚀 Current Phases
+Phase 1 — Simulation Foundation ✅
 
-Goal:
-Establish a working simulation loop that produces visible, stable output.
+Time-stepped loop
 
-Implemented:
-
-Time-stepped update loop (dt)
-
-Rocket state tracking (altitude, velocity)
+Rocket state tracking
 
 Single-line telemetry output
 
 Basic success condition based on altitude
 
-Outcome:
-A functioning program that simulates a simple ascent and validates the overall structure.
+---
+
+Phase 2 — Physics-Based Vertical Ascent ✅
+
+Newtonian motion for velocity & altitude
+
+Thrust and mass dynamically modeled
+
+Smooth integration: acceleration → velocity → altitude
+
+Telemetry includes velocity, altitude, acceleration, mass, thrust
 
 ---
 
-✅ Phase 2 — Physics-Based Vertical Ascent (Completed)
+Phase 3 — Multi-Stage & Composition ✅
 
-Goal:
-Simulate a realistic vertical rocket ascent using Newtonian physics.
+Introduced Stage objects with separate mass and burn logic
 
-Implemented:
+Rocket aggregates stages and computes total mass
 
-Thrust-based acceleration model:
-```
-a = (thrust / mass) - g
-```
+Stage lifecycle states (IGNITED, BURNED_OUT, SEPARATED)
 
-Constant gravity model (g = 9.81 m/s²)
+Stage separation logic implemented
 
-Falcon 9–inspired constants:
+Telemetry now shows current and next stage states
 
-Mass: 549,000 kg
-
-Thrust: 7,607,000 N
-
-Smooth integration of: Acceleration → Velocity → Altitude
-
-Clear separation of responsibilities:
-
-Rocket owns physics and state
-
-main owns time, loop, and output
-
-Telemetry output includes:
-```
-| Time: 00:02:08.30s | Velocity: 1827.96 m/s | Altitude: 80057.48 m
-| Acceleration: 35.45 m/s^2 | Mass: 168071.60 kg | Thrust 7607000 N |
-```
-
-Success Condition:
-
-Rocket reaches target “space” altitude
-
-Mission success message printed
-
-Outcome:
-A physically believable vertical ascent simulation with correct force modeling.
+State machine drives the rocket’s progression
 
 ---
 
-🚀 Current Features (Phase 3)
-🧩 Architecture
+Phase 4 — Orbital Mechanics & State Machine 🔜
 
-Rocket
+Rocket driven by a state machine
 
-Owns motion state: velocity, altitude, acceleration
+Planned: orbital velocity thresholds, more advanced mission success
 
-Aggregates one or more Stage objects
+Foundation for multi-stage orbital flight
 
-Computes net force, acceleration, and kinematics
-
-Stage
-
-Owns physical properties:
-
-dry_mass
-
-fuel_mass
-
-thrust
-
-burn_rate
-
-Computes its own total mass
-
-Can be activated/deactivated dynamically
-
-This follows composition over inheritance and clean separation of responsibility.
-
-🔥 Physics Model
-
-Constant thrust per active stage
-
-Fuel mass decreases over time based on burn_rate × dt
-
-Rocket mass is computed dynamically from attached stages
-
-Acceleration calculated using:
-```
-F_net = thrust − weight
-a = F_net / total_mass
-```
-
-Gravity fixed at 9.81 m/s²
-
-Simple G-limit logic:
-
-Stage deactivates when acceleration exceeds 35 m/s²
+Non-blocking stage ignition delays
 
 ---
-
-🌍 Phase 4 — Orbital Mechanics (Planned)
-
-Goal:
-Transition from altitude-based success to orbit-based success.
-
-Planned Features:
-
-Orbital velocity thresholds (e.g., LEO)
-
-Success based on:
-
-Altitude and
-
-Orbital velocity
-
-Separation of ascent and orbital logic
-
-Foundation for multi-stage rockets
-
----
-
-🚫 Current Non-Goals
-
-The following are intentionally out of scope for now:
-
-Atmospheric drag
-
-Staging
-
-Multi-axis motion
-
-Guidance or control systems
-
-Graphical visualization
-
-***
 
 🧠 Design Philosophy
 
@@ -198,7 +152,5 @@ Avoid premature abstraction
 
 Prioritize clarity over complexity
 
-Physics before features
-
-***
+Physics before features, states before automation
 
