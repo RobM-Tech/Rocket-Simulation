@@ -7,6 +7,7 @@ class stage_state(Enum):
     BURNED_OUT = 4
     MECO = 5
     SEPARATED = 6
+    EMPTY = 7
 
 
 
@@ -20,11 +21,7 @@ class Stage:
         self.burn_rate = burn_rate
         
     def __repr__(self):
-        return f"""Stage(
-        state={self.state})
-        dry mass={self.dry_mass}
-        fuel mass={self.fuel_mass}
-        )"""
+        return f"Stage(state='{self.state.name}')"
         
     def calc_total_mass(self):
         return self.fuel_mass + self.dry_mass
@@ -59,3 +56,9 @@ class Stage:
     
     def is_separated(self):
         return self.state == stage_state.SEPARATED
+
+class empty_stage:
+    state = stage_state.EMPTY 
+
+    def calc_total_mass(self):
+        return 0

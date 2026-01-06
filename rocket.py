@@ -1,12 +1,13 @@
-from stage import stage_state, Stage
+from stage import stage_state, Stage, empty_stage
 from enum import Enum
 
 class rocket_state(Enum):
     IDLE = 1
     Launch = 2
     STAGE1_SEPARATION = 3
-    STAGE2_IGNITION = 4
-    COAST = 5
+    COAST = 4
+    STAGE2_IGNITION = 5
+    
 
 class Rocket:
     def __init__(self, velocity, altitude, acceleration):
@@ -27,6 +28,8 @@ class Rocket:
     def total_mass(self):
         return sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited())
     
+    def __repr__(self):
+        return f"Rocket(State: {self.state.name}, Current Stage: {self.current_stage.state.name}, Next Stage: {self.next_stage.state.name})"
 
     #Main loop
     def update(self, dt):
@@ -102,15 +105,17 @@ class Rocket:
                     if self.time_since_stage_detach >= self.MECO_delay:
                         self.detach_stage(self.current_stage)
                         self.current_stage = self.next_stage
+                        self.next_stage = empty_stage()
+                        self.next_stage.state = stage_state.EMPTY
+                        self.state = rocket_state.COAST
+
+            case rocket_state.COAST:
+                self.time_since_stage_detach += dt
                 if self.time_since_stage_detach >= self.stage2_ignition_delay:
                     self.state = rocket_state.STAGE2_IGNITION
 
-
             case rocket_state.STAGE2_IGNITION:
                 self.current_stage.state = stage_state.IGNITED
-
-            case rocket_state.COAST:
-                pass
 
             case _:
                 pass

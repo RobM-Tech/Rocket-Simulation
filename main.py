@@ -12,7 +12,7 @@ def main():
     Falcon_9.attach_stage(stage1)
     stage2 = stage.Stage(4000, 92670, 981000, 280)
     Falcon_9.attach_stage(stage2)
-    stage_one_seperation = 100000  # Escape altitude in meters
+    stage_one_seperation = 200000  # Escape altitude in meters
 
     #Time
      
@@ -48,7 +48,9 @@ def main():
                     )
         
         telemetry = Falcon_9.get_telemetry()
-        print(f"\r| Time: {time_str}s {telemetry} states: rocket: {Falcon_9.state}  stages {Falcon_9.current_stage.state} {Falcon_9.next_stage.state}", end="", flush=True)
+        #prints updated telemetry on one line
+        
+        print(f"\r\033[K| Time: {time_str}s {telemetry} {Falcon_9}", end="", flush=True)
         
         time.sleep(dt)  # Wait for one second before the next iteration
     print("\n")
