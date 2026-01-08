@@ -4,7 +4,7 @@ import rocket, stage
 def main():
     # Initialize the rocket
 
-    Falcon_9 = rocket.Rocket(0, 15, 0)
+    Falcon_9 = rocket.Rocket(y=15.0)
 
     #Initialize Stage(s)
 
@@ -30,7 +30,7 @@ def main():
     print("\nLaunch!!")
     time.sleep(.5)
     
-    while Falcon_9.altitude < stage_one_seperation:
+    while Falcon_9.y < stage_one_seperation:
   
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)

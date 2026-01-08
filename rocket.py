@@ -1,25 +1,34 @@
+import physics
 from stage import stage_state, Stage, empty_stage
 from enum import Enum
 
 class rocket_state(Enum):
     IDLE = 1
-    Launch = 2
-    STAGE1_SEPARATION = 3
-    COAST = 4
-    STAGE2_IGNITION = 5
+    LAUNCH = 2
+    ASCENT_BURN = 3
+    STAGE1_SEPARATION = 4
+    COAST = 5
+    STAGE2_IGNITION = 6
     
 
 class Rocket:
-    def __init__(self, velocity, altitude, acceleration):
+    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0):
         self.state = rocket_state.IDLE
-        self.velocity = velocity #Initial velocity in m/s
-        self.staging_velocity = 2000 #m/s
-        self.altitude = altitude #in meters
-        self.stage1_separation_altitude = 80000 #in meters, 80km 
-        self.acceleration = acceleration #Initial acceleration in m/s^2
-        self.time_since_stage_detach = 0
+        #Vertical motion
+        self.vy = vy #Initial velocity in m/s
+        self.ay = ay #Initial acceleration in m/s^2
+        self.y = y #in meters
+
+        #Horizontal motion
+        self.vx = vx
+        self.ax = ax
+        self.x = x 
+        
+        self.stage_sep_velocity = 2000 #m/s
+        self.stage1_sep_altitude = 80000 #in meters, 80km 
+        self.time_since_sep = 0
         self.MECO_delay = 4 #separation happens ~4 seconds after MECO
-        self.stage2_ignition_delay = 15 # stage 2 ignites ~11 seconds after seperation
+        self.stage2_ignition_delay = 11 # stage 2 ignites ~11 seconds after seperation
         self.current_stage = None
         self.next_stage = None
         self.stages = []
@@ -34,75 +43,60 @@ class Rocket:
     #Main loop
     def update(self, dt):
         self.set_rocket_state(dt)
-                            
         self.current_stage.update(dt)
 
-        self.calc_acceleration()
-        self.velocity += self.acceleration * dt #Update velocity based on acceleration and time step
-        self.altitude += self.velocity * dt #Update altitude based on velocity and time step
-        if self.altitude < 0:
+        #Update physics
+        thrust = self.current_stage.thrust if self.current_stage else 0
+        self.ay = physics.vertical_acceleration(thrust, self.total_mass)
+
+        self.vy += self.ay * dt #Update velocity based on acceleration and time step
+        self.y += self.vy * dt #Update altitude based on velocity and time step
+        if self.y < 0:
             return print("Critical Error, CRASH")
             
         
     
-
+    #Receive telemetry data and format in to readable data
     def get_telemetry(self):
-        #Receive telemetry data and format in to readable data
         t_mass = self.total_mass
         thrust = 0
         if self.current_stage != None:
             thrust = self.current_stage.thrust
         
         telemetry = (
-                     f"| Velocity: {self.velocity:.2f} m/s "
-                     f"| Altitude: {self.altitude:.2f} m "
-                     f"| Acceleration: {self.acceleration:.2f} m/s^2 "
+                     f"| y: {self.y:.2f} m "
+                     f"| Vy: {self.vy:.2f} m/s "
+                     f"| Ay: {self.ay:.2f} m/s^2 "
                      f"| Mass: {t_mass:.2f} kg "
                      f"| Thrust {thrust} N |"
                      )
         return telemetry
 
-
-### main calculations
-
-    def calc_weight(self):
-        weight = self.total_mass * 9.81
-        return weight
-
-    def calc_net_force(self):
-        weight = self.calc_weight()
-        netForce = 0.00
-        if self.current_stage != None:
-            netforce = self.current_stage.thrust - weight
-            return netforce
-
-        
-        return netForce
-
-    def calc_acceleration(self):
-        netForce = self.calc_net_force()
-        self.acceleration = netForce / self.total_mass
     
-
-    #Helpers
+    #Rocket state machine
 
     def set_rocket_state(self, dt):
         match self.state:
             case rocket_state.IDLE:
                 self.set_current_stage()
-                self.state = rocket_state.Launch
+                self.state = rocket_state.LAUNCH
 
-            case rocket_state.Launch:
+            case rocket_state.LAUNCH:
                 self.current_stage.state = stage_state.IGNITED
-                if self.altitude >= self.stage1_separation_altitude and self.velocity >= self.staging_velocity:
+                if self.ay > 5:
+                    self.state = rocket_state.ASCENT_BURN
+                
+
+            case rocket_state.ASCENT_BURN:
+                if self.y >= self.stage1_sep_altitude and self.vy >= self.stage_sep_velocity:
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
 
             case rocket_state.STAGE1_SEPARATION:
-                self.time_since_stage_detach += dt
+                self.time_since_sep += dt
                 if self.current_stage.is_meco():
                     
-                    if self.time_since_stage_detach >= self.MECO_delay:
+                    if self.time_since_sep >= self.MECO_delay:
                         self.detach_stage(self.current_stage)
                         self.current_stage = self.next_stage
                         self.next_stage = empty_stage()
@@ -110,8 +104,8 @@ class Rocket:
                         self.state = rocket_state.COAST
 
             case rocket_state.COAST:
-                self.time_since_stage_detach += dt
-                if self.time_since_stage_detach >= self.stage2_ignition_delay:
+                self.time_since_sep += dt
+                if self.time_since_sep >= self.stage2_ignition_delay:
                     self.state = rocket_state.STAGE2_IGNITION
 
             case rocket_state.STAGE2_IGNITION:
@@ -120,9 +114,11 @@ class Rocket:
             case _:
                 pass
 
+    #Helpers
 
     def stage_is_eligible(self, stage):
-        if stage.state == stage_state.ATTACHED or stage.state == stage_state.IGNITED and stage.fuel_mass > 0:
+        if (stage.state in (stage_state.ATTACHED, stage_state.IGNITED)
+            and stage.fuel_mass > 0):
             return True
         return False
     
@@ -137,7 +133,10 @@ class Rocket:
         return self.state == rocket_state.IDLE
 
     def is_launch(self):
-        return self.state == rocket_state.Launch
+        return self.state == rocket_state.LAUNCH
+    
+    def is_ascent_burn(self):
+        return self.state == rocket_state.ASCENT_BURN
         
     def is_stage1_separation(self):
         return self.state == rocket_state.STAGE1_SEPARATION
