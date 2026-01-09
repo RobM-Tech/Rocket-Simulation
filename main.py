@@ -4,13 +4,13 @@ import rocket, stage
 def main():
     # Initialize the rocket
 
-    Falcon_9 = rocket.Rocket(y=15.0)
+    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52)
 
     #Initialize Stage(s)
 
-    stage1 = stage.Stage(25600, 409500, 7607000, 2848)
+    stage1 = stage.Stage(dry_mass=25600, fuel_mass=409500, thrust=7607000, burn_rate=2848)
     Falcon_9.attach_stage(stage1)
-    stage2 = stage.Stage(4000, 92670, 981000, 280)
+    stage2 = stage.Stage(dry_mass=4000, fuel_mass=92670, thrust=981000, burn_rate=280)
     Falcon_9.attach_stage(stage2)
     stage_one_seperation = 200000  # Escape altitude in meters
 
@@ -50,7 +50,11 @@ def main():
         telemetry = Falcon_9.get_telemetry()
         #prints updated telemetry on one line
         
-        print(f"\r\033[K| Time: {time_str}s {telemetry} {Falcon_9}", end="", flush=True)
+        print("\033c", end="")  # clear screen (portable)
+        print(f"Time: {time_str}s")
+        print(telemetry)
+        
+
         
         time.sleep(dt)  # Wait for one second before the next iteration
     print("\n")

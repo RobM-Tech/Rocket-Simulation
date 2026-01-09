@@ -17,8 +17,14 @@ class Stage:
         self.state = stage_state.CREATED
         self.dry_mass = dry_mass
         self.fuel_mass = fuel_mass
-        self.thrust = thrust
+        self.nominal_thrust = thrust
         self.burn_rate = burn_rate
+
+    @property
+    def thrust(self):
+        if self.is_ignited() and not self.is_burned_out():
+            return self.nominal_thrust
+        return 0
         
     def __repr__(self):
         return f"Stage(state='{self.state.name}')"
@@ -33,6 +39,7 @@ class Stage:
             if self.fuel_mass <= 0:
                 self.fuel_mass = 0
                 self.state = stage_state.BURNED_OUT
+        
 
 
 
@@ -57,6 +64,7 @@ class Stage:
     def is_separated(self):
         return self.state == stage_state.SEPARATED
 
+#Void place holder after stage sep
 class empty_stage:
     state = stage_state.EMPTY 
 

@@ -12,7 +12,7 @@ class rocket_state(Enum):
     
 
 class Rocket:
-    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0):
+    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0, ref_area=0.0):
         self.state = rocket_state.IDLE
         #Vertical motion
         self.vy = vy #Initial velocity in m/s
@@ -24,6 +24,7 @@ class Rocket:
         self.ax = ax
         self.x = x 
         
+        self.reference_area = ref_area
         self.stage_sep_velocity = 2000 #m/s
         self.stage1_sep_altitude = 80000 #in meters, 80km 
         self.time_since_sep = 0
@@ -47,7 +48,7 @@ class Rocket:
 
         #Update physics
         thrust = self.current_stage.thrust if self.current_stage else 0
-        self.ay = physics.vertical_acceleration(thrust, self.total_mass)
+        self.ay = physics.vertical_acceleration(thrust=thrust, t_mass=self.total_mass, altitude=self.y, velocity=self.vy, ref_area=self.reference_area)
 
         self.vy += self.ay * dt #Update velocity based on acceleration and time step
         self.y += self.vy * dt #Update altitude based on velocity and time step
@@ -59,18 +60,39 @@ class Rocket:
     #Receive telemetry data and format in to readable data
     def get_telemetry(self):
         t_mass = self.total_mass
-        thrust = 0
-        if self.current_stage != None:
+        thrust = 0.0
+        fuel = 0.0
+
+        drag = physics.drag_force(self.y, self.vy, self.reference_area) / 1000  # kN
+        Q = physics.dynamic_pressure(velocity=self.vy, altitude=self.y)        # Pa
+
+        if self.current_stage is not None:
             thrust = self.current_stage.thrust
-        
+            fuel = self.current_stage.fuel_mass
+
         telemetry = (
-                     f"| y: {self.y:.2f} m "
-                     f"| Vy: {self.vy:.2f} m/s "
-                     f"| Ay: {self.ay:.2f} m/s^2 "
-                     f"| Mass: {t_mass:.2f} kg "
-                     f"| Thrust {thrust} N |"
-                     )
+            f"KINEMATICS:\n"
+            f"  y:   {self.y:10.2f} m\n"
+            f"  Vy:  {self.vy:10.2f} m/s\n"
+            f"  Ay:  {self.ay:10.2f} m/s²\n"
+            f"\n"
+            f"AERODYNAMICS:\n"
+            f"  Drag: {drag:10.2f} kN\n"
+            f"  Q:    {Q:10.2f} Pa\n"
+            f"\n"
+            f"PROPULSION / MASS:\n"
+            f"  Thrust: {thrust:10.0f} N\n"
+            f"  Fuel:   {fuel:10.2f} kg\n"
+            f"  Mass:   {t_mass:10.2f} kg\n"
+            f"\n"
+            f"FLIGHT STATE:\n"
+            f"  Rocket State: {self.state}\n"
+            f"  Current Stage: {self.current_stage.state if self.current_stage else 'None'}\n"
+            f"  Next Stage:    {self.next_stage.state if self.next_stage else 'None'}\n"
+        )
+
         return telemetry
+
 
     
     #Rocket state machine
