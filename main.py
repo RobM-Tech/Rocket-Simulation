@@ -4,7 +4,7 @@ import rocket, stage
 def main():
     # Initialize the rocket
 
-    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52)
+    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52, payload_weight=17500.0)
 
     #Initialize Stage(s)
 
@@ -12,7 +12,7 @@ def main():
     Falcon_9.attach_stage(stage1)
     stage2 = stage.Stage(dry_mass=4000, fuel_mass=92670, thrust=981000, burn_rate=280)
     Falcon_9.attach_stage(stage2)
-    stage_one_seperation = 200000  # Escape altitude in meters
+    stage_one_seperation = 290000  # Escape altitude in meters
 
     #Time
      
@@ -22,20 +22,15 @@ def main():
 
     # Launch count down. For fun!
     cd = 3
-    while cd > 0:
-            print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)
-            cd -= dt
-            time.sleep(dt)
+    
 
-    print("\nLaunch!!")
-    time.sleep(.5)
+    #print("\nLaunch!!")
+    #time.sleep(.5)
     
     while Falcon_9.y < stage_one_seperation:
-  
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)
         t += dt
-        
         #HH:MM:SS.ss setup
         hh = int(t // 3600)
         mm = int((t % 3600) // 60)
@@ -53,10 +48,19 @@ def main():
         print("\033c", end="")  # clear screen (portable)
         print(f"Time: {time_str}s")
         print(telemetry)
-        
 
+        while cd > 0:
+            print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)
+            cd -= dt
+            time.sleep(dt)
+            if cd == 0:
+                print("\nLaunch!!")
+                time.sleep(.5)
         
-        time.sleep(dt)  # Wait for one second before the next iteration
+       
+        
+        
+        time.sleep(dt)  # Wait before the next iteration
     print("\n")
     print("SPACE REACHED!!!")
 

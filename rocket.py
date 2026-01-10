@@ -1,19 +1,23 @@
-import physics
+import physics, time, math
 from stage import stage_state, Stage, empty_stage
 from enum import Enum
 
 class rocket_state(Enum):
     IDLE = 1
     LAUNCH = 2
-    ASCENT_BURN = 3
-    STAGE1_SEPARATION = 4
-    COAST = 5
-    STAGE2_IGNITION = 6
+    PITCH_INITIATION = 3
+    ASCENT_BURN = 4
+    STAGE1_SEPARATION = 5
+    COAST = 6
+    STAGE2_IGNITION = 7
+    STAGE2_ASCENT = 8
     
 
 class Rocket:
-    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0, ref_area=0.0):
+    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0, ref_area=0.0, payload_weight=0.0):
         self.state = rocket_state.IDLE
+        
+
         #Vertical motion
         self.vy = vy #Initial velocity in m/s
         self.ay = ay #Initial acceleration in m/s^2
@@ -23,7 +27,15 @@ class Rocket:
         self.vx = vx
         self.ax = ax
         self.x = x 
-        
+
+        self.fairing_weight = 1750
+        self.fairing_jettisoned = False
+        self.total_velocity = 0
+        self.max_stage2_Vy = 0
+        self.payload_weight = payload_weight #in kg
+        self.command_pitch_done = False
+        self.command_pitch = math.radians(85.0)
+        self.pitch_angle = math.radians(90.0)
         self.reference_area = ref_area
         self.stage_sep_velocity = 2000 #m/s
         self.stage1_sep_altitude = 80000 #in meters, 80km 
@@ -36,8 +48,8 @@ class Rocket:
 
     @property
     def total_mass(self):
-        return sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited())
-    
+        stage_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited())
+        return stage_mass + self.payload_weight
     def __repr__(self):
         return f"Rocket(State: {self.state.name}, Current Stage: {self.current_stage.state.name}, Next Stage: {self.next_stage.state.name})"
 
@@ -45,36 +57,62 @@ class Rocket:
     def update(self, dt):
         self.set_rocket_state(dt)
         self.current_stage.update(dt)
+        drag = physics.drag_force(self.y, self.vy, self.reference_area)
 
         #Update physics
         thrust = self.current_stage.thrust if self.current_stage else 0
-        self.ay = physics.vertical_acceleration(thrust=thrust, t_mass=self.total_mass, altitude=self.y, velocity=self.vy, ref_area=self.reference_area)
+        T_x, T_y = physics.calc_thrust(thrust, self.pitch_angle)
 
+        self.ay = physics.vertical_acceleration(self, thrust=T_y)
+        self.ax = physics.horizontal_acceleration(self, T_x)
+
+        #Update pos
         self.vy += self.ay * dt #Update velocity based on acceleration and time step
         self.y += self.vy * dt #Update altitude based on velocity and time step
         if self.y < 0:
             return print("Critical Error, CRASH")
+        
+        self.vx += self.ax * dt
+        self.x += self.vx * dt 
+
+        self.total_velocity = math.sqrt((self.vx**2) + (self.vy**2))
+
+       
+            
+
+
+
             
         
     
     #Receive telemetry data and format in to readable data
     def get_telemetry(self):
+        
         t_mass = self.total_mass
         thrust = 0.0
         fuel = 0.0
-
+        pitch_deg = math.degrees(self.pitch_angle)
         drag = physics.drag_force(self.y, self.vy, self.reference_area) / 1000  # kN
-        Q = physics.dynamic_pressure(velocity=self.vy, altitude=self.y)        # Pa
+        Q = physics.dynamic_pressure(vy=self.vy, y=self.y)        # Pa
 
         if self.current_stage is not None:
             thrust = self.current_stage.thrust
             fuel = self.current_stage.fuel_mass
 
+        if self.state == rocket_state.IDLE:
+            self.vy = 0
+            self.ay = 0
+
         telemetry = (
             f"KINEMATICS:\n"
-            f"  y:   {self.y:10.2f} m\n"
-            f"  Vy:  {self.vy:10.2f} m/s\n"
-            f"  Ay:  {self.ay:10.2f} m/s²\n"
+            f" V_total: {self.total_velocity:10.2f} m/s²\n"
+            f"  y:      {self.y:10.2f} m\n"
+            f"  Vy:     {self.vy:10.2f} m/s\n"
+            f"  Ay:     {self.ay:10.2f} m/s²\n"
+            f"  x:      {self.x:10.2f} m\n"
+            f"  Vx:     {self.vx:10.2f} m/s\n"
+            f"  Ax:     {self.ax:10.2f} m/s²\n"
+            f"  Pitch:  {pitch_deg:10.2f}"
             f"\n"
             f"AERODYNAMICS:\n"
             f"  Drag: {drag:10.2f} kN\n"
@@ -105,12 +143,38 @@ class Rocket:
 
             case rocket_state.LAUNCH:
                 self.current_stage.state = stage_state.IGNITED
-                if self.ay > 5:
+                if self.y > 200:
+                    self.state = rocket_state.PITCH_INITIATION
+            
+            case rocket_state.PITCH_INITIATION:
+                if self.pitch_angle > self.command_pitch:
+                    self.pitch_angle -= math.radians(0.056)  # increment small step
+                else:
+                    self.command_pitch_done = True
+                    
+                if self.command_pitch_done:
                     self.state = rocket_state.ASCENT_BURN
                 
 
             case rocket_state.ASCENT_BURN:
-                if self.y >= self.stage1_sep_altitude and self.vy >= self.stage_sep_velocity:
+                if self.is_ascent_burn():
+                    # linear ramp from command_pitch to max_pitch
+                    max_pitch_rad = math.radians(47)
+                    ramp_start_alt = 550      # start tilting after initial kick
+                    ramp_end_alt = 50000       # reach max pitch by ~80 km
+
+                    if self.y > ramp_start_alt:
+                        k = (self.y - ramp_start_alt) / (ramp_end_alt - ramp_start_alt)
+                        k = min(k, 1.0)
+                        target_pitch = self.command_pitch - k * (self.command_pitch - max_pitch_rad)
+                    else:
+                        target_pitch = self.command_pitch  # hold initial kick
+
+                   
+                    # smooth approach
+                    self.pitch_angle += (target_pitch - self.pitch_angle) * 0.05
+
+                if self.y >= self.stage1_sep_altitude and self.total_velocity >= self.stage_sep_velocity:
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
 
@@ -132,6 +196,29 @@ class Rocket:
 
             case rocket_state.STAGE2_IGNITION:
                 self.current_stage.state = stage_state.IGNITED
+                
+                if self.vy > self.max_stage2_Vy:
+                    self.max_stage2_Vy = self.vy
+                elif self.vy < self.max_stage2_Vy:
+                    self.state = rocket_state.STAGE2_ASCENT
+
+            case rocket_state.STAGE2_ASCENT:
+                if not self.fairing_jettisoned and self.y >= 110000:
+                    self.payload_weight -= self.fairing_weight
+                    self.fairing_jettisoned = True
+                target_pitch_rad = math.radians(20)
+                start_pitch_rad = math.radians(47)
+                ramp_start_alt = 100000
+                ramp_end_alt = 290000
+                if self.is_stage2_ascent():
+                    k = (self.y - ramp_start_alt) / (ramp_end_alt - ramp_start_alt)
+                    k = min(max(k, 0.0), 1.0)
+                    target_pitch = start_pitch_rad + k * (target_pitch_rad - start_pitch_rad)
+
+                # smooth approach
+                self.pitch_angle += (target_pitch - self.pitch_angle) * 0.05
+
+
 
             case _:
                 pass
@@ -157,6 +244,9 @@ class Rocket:
     def is_launch(self):
         return self.state == rocket_state.LAUNCH
     
+    def is_pitch_initiation(self):
+        return self.state == rocket_state.PITCH_INITIATION
+    
     def is_ascent_burn(self):
         return self.state == rocket_state.ASCENT_BURN
         
@@ -168,6 +258,9 @@ class Rocket:
 
     def is_coast(self):
         return self.state == rocket_state.COAST
+    
+    def is_stage2_ascent(self):
+        return self.state == rocket_state.STAGE2_ASCENT
 
     ### Stage control
       
