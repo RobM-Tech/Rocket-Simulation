@@ -4,30 +4,36 @@ import rocket, stage
 def main():
     # Initialize the rocket
 
-    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52, payload_weight=17500.0)
+    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52, payload_weight=17_500.0)
 
     #Initialize Stage(s)
 
-    stage1 = stage.Stage(dry_mass=25600, fuel_mass=409500, thrust=7607000, burn_rate=2848)
+    stage1 = stage.Stage(dry_mass=25_600, fuel_mass=409_500, thrust=7_607_000, burn_rate=2_600)
     Falcon_9.attach_stage(stage1)
-    stage2 = stage.Stage(dry_mass=4000, fuel_mass=92670, thrust=981000, burn_rate=280)
+    stage2 = stage.Stage(dry_mass=4_000, fuel_mass=92_670, thrust=981000, burn_rate=257)
     Falcon_9.attach_stage(stage2)
-    stage_one_seperation = 290000  # Escape altitude in meters
+    orbit_velocity = 9000  # Escape altitude in meters
 
     #Time
-     
-    dt =  0.05  # Time step in seconds
-    t = 0  # Initial time
+    MAX_SIM_TIME = 3600
+    dt =  0.01  # Time step in seconds
+    t = 0  # Initial time 
     
 
     # Launch count down. For fun!
     cd = 3
     
-
-    #print("\nLaunch!!")
-    #time.sleep(.5)
+    while cd > 0:
+            print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)
+            cd -= dt
+            time.sleep(dt)
+            if cd == 0:
+                print("\nLaunch!!")
+                time.sleep(.5)
+    Falcon_9.sim_running = True
     
-    while Falcon_9.y < stage_one_seperation:
+    while Falcon_9.sim_running:
+
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)
         t += dt
@@ -48,17 +54,6 @@ def main():
         print("\033c", end="")  # clear screen (portable)
         print(f"Time: {time_str}s")
         print(telemetry)
-
-        while cd > 0:
-            print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)
-            cd -= dt
-            time.sleep(dt)
-            if cd == 0:
-                print("\nLaunch!!")
-                time.sleep(.5)
-        
-       
-        
         
         time.sleep(dt)  # Wait before the next iteration
     print("\n")

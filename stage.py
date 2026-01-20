@@ -4,10 +4,12 @@ class stage_state(Enum):
     CREATED = 1
     ATTACHED = 2
     IGNITED = 3
-    BURNED_OUT = 4
-    MECO = 5
-    SEPARATED = 6
-    EMPTY = 7
+    THROTTLE_DOWN = 4
+    BURNED_OUT = 5
+    MECO = 6
+    SECO = 7
+    SEPARATED = 8
+    EMPTY = 9
 
 
 
@@ -19,12 +21,16 @@ class Stage:
         self.fuel_mass = fuel_mass
         self.nominal_thrust = thrust
         self.burn_rate = burn_rate
+        self.throttled_burn_rate = self.burn_rate * 0.8
 
     @property
     def thrust(self):
         if self.is_ignited() and not self.is_burned_out():
             return self.nominal_thrust
-        return 0
+        elif self.is_throttled() and not self.is_burned_out():
+            return self.nominal_thrust * 0.8
+        else:
+            return 0
         
     def __repr__(self):
         return f"Stage(state='{self.state.name}')"
@@ -34,14 +40,22 @@ class Stage:
     
 
     def update(self, dt):
-        if self.is_ignited() and self.fuel_mass > 0:
-            self.fuel_mass -= self.burn_rate * dt
+        if self.is_ignited() or self.is_throttled() and self.fuel_mass > 0:
+            if self.is_throttled():
+                self.fuel_mass -= self.throttled_burn_rate * dt
+            else:
+                self.fuel_mass -= self.burn_rate * dt
             if self.fuel_mass <= 0:
                 self.fuel_mass = 0
                 self.state = stage_state.BURNED_OUT
         
 
-
+    def set_stage_state(self):
+        match self.state:
+            case stage_state.IGNITED:
+                return
+            case stage_state.THROTTLE_DOWN:
+                return
 
 
     #HELPERS
@@ -54,6 +68,9 @@ class Stage:
     
     def is_ignited(self):
         return self.state == stage_state.IGNITED
+    
+    def is_throttled(self):
+        return self.state == stage_state.THROTTLE_DOWN
     
     def is_burned_out(self):
         return self.state == stage_state.BURNED_OUT
