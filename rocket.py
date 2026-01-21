@@ -16,81 +16,104 @@ class rocket_state(Enum):
 
 class Rocket:
     def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0, ref_area=0.0, payload_weight=0.0):
+        
+        # ────────────────────────────────────────────────
+        #  Simulation control & book-keeping
+        # ────────────────────────────────────────────────
         self.state          = rocket_state.IDLE
-        self.reference_area = ref_area
-        self.t              = 0
-        self.target_orbit_altitude = 290000 # 290km in meters
-        self.target_r   = physics.R_e + self.target_orbit_altitude
-        self.v_r        = 0
-        self.max_G      = 3.5 * 9.81
-        
-        self.sim_running = False
+        self.t              = 0.0
+        self.sim_running    = False
         self.orbit_initialized = False
+        self.max_Q          = 0.0
+        self.max_G          = 3.5 * 9.81
 
-        #Vertical motion
-        self.vy     = vy #Initial velocity in m/s
-        self.ay     = ay #Initial acceleration in m/s^2
-        self.y      = y  #in meters
+        # ────────────────────────────────────────────────
+        #  Target & orbit parameters
+        # ────────────────────────────────────────────────
+        self.target_orbit_altitude = 290_000          # m
+        self.target_r       = physics.R_e + self.target_orbit_altitude
 
-        #Horizontal motion
-        self.vx     = vx #Initial velocity in m/s
-        self.ax     = ax #Initial acceleration in m/s^2
-        self.x      = x  #in meters
+        # ────────────────────────────────────────────────
+        #  State — kinematics
+        # ────────────────────────────────────────────────
+        self.x              = x
+        self.y              = y
+        self.vx             = vx
+        self.vy             = vy
+        self.ax             = ax
+        self.ay             = ay
+        self.total_velocity = 0.0
+        self.v_r            = 0.0                   # radial velocity component
 
-        self.total_velocity     = 0 # m/s
-        
-
-        #Pitch command
-        self.command_pitch_done = False
-        self.command_pitch      = math.radians(5.0)
+        # ────────────────────────────────────────────────
+        #  Attitude & guidance
+        # ────────────────────────────────────────────────
         self.pitch_angle        = math.radians(0.0)
-        self.last_pitch         = 0
+        self.command_pitch      = math.radians(8.0)
+        self.command_pitch_done = False
+        self.last_pitch         = 0.0               # possibly unused → candidate for removal
 
-        #Stage variabels
+        # ────────────────────────────────────────────────
+        #  Staging & stage references
+        # ────────────────────────────────────────────────
+        self.stages         = []
         self.current_stage  = None
         self.next_stage     = None
-        self.stages         = []
-        self.max_stage2_Vy  = 0
+        self.time_since_sep = 0.0
+        self.MECO_delay        = 3.0     # s
+        self.s2_ignition_delay = 3.0     # s   (real Falcon 9 is ~10–12 s — consider tuning)
 
-        self.time_since_sep    = 0
-        self.MECO_delay        = 3 #separation happens ~4 seconds after MECO
-        self.s2_ignition_delay = 3 # stage 2 ignites ~11 seconds after seperation
+        self.max_stage2_Vy  = 0.0
 
-        '''
-        Main varaibles to adjust while dialing in orbit 
-        Adjust both stage 1 and 2 pitch parameters
-        '''
+        # ────────────────────────────────────────────────
+        #  Tuning parameters — Stage 1
+        # ────────────────────────────────────────────────
+        self.s1_ramp_dur          = 110      # s
+        self.s1_ramp_delay        = 5.0      # s
+        self.s1_min_vel           = 2350     # m/s
+        self.s1_sep_min_alt       = 65_000   # m
+        self.s1_nominal_burn_time = 160      # s
+        self.s1_start_pitch       = self.command_pitch
+        self.s1_end_pitch         = math.radians(70)
+        self.s1_throttle_dwn_time = 60       # s
+        self.s1_throttle_up_time  = 90       # s
 
-        #stage 1
-        self.s1_ramp_dur          = 80    #seconds
-        self.s1_ramp_delay        = 5     # seconds
-        self.s1_min_vel           = 2300   # m/s
-        self.s1_sep_min_alt       = 65_000 # in meters
-        self.s1_nominal_burn_time = 160    #seconds
-        self.s1_start_pitch       = self.command_pitch # vertical
-        self.s1_end_pitch         = math.radians(82)   # target at ramp end
-        self.s1_throttle_dwn_time = 40     # seconds
-        self.s1_throttle_up_time  = 70     # seconds
+        # ────────────────────────────────────────────────
+        #  Tuning parameters — throttling
+        # ────────────────────────────────────────────────
+        self.throttle_rate_limit    = 0.05    # fraction per second
+        self.launch_throttle        = 0.8
+        self.max_q_throttle         = 0.7
+        self.target_thrust_fraction = 1.0     # renamed for clarity (was target_thrust_friction)
 
-        #stage 2
-        self.s2_ramp_dur          = 200    # seconds
-        self.s2_ramp_delay        = 60.0   # hold start_pitch for 30s
-        self.S2_orbital_velocity  = 7650   # m/s
-        self.s2_nominal_burn_time = 360    # seconds
-        self.s2_start_pitch       = math.radians(80) # target at ramp start
-        self.s2_end_pitch         = math.radians(90) # target at ramp end
+        # ────────────────────────────────────────────────
+        #  Tuning parameters — Stage 2
+        # ────────────────────────────────────────────────
+        self.s2_ramp_dur          = 200      # s
+        self.s2_ramp_delay        = 60.0     # s
+        self.s2_nominal_burn_time = 360      # s
+        self.S2_orbital_velocity  = 7650     # m/s     ← consider renaming → s2_target_velocity
+        self.s2_start_pitch       = math.radians(80)
+        self.s2_end_pitch         = math.radians(90)
 
-
-        #Ejectables
-        self.fairing_weight     = 1750 # kg
+        # ────────────────────────────────────────────────
+        #  Payload & ejectables
+        # ────────────────────────────────────────────────
+        self.reference_area     = ref_area            # m² (consider rename → drag_reference_area)
+        self.payload_weight     = payload_weight      # kg
+        self.fairing_weight     = 1750                # kg
         self.fairing_jettisoned = False
-        self.payload_weight     = payload_weight # kg
+
+        # ────────────────────────────────────────────────
+        #  Propulsion state
+        # ────────────────────────────────────────────────
+        self.current_thrust = 0.0
 
 
 
     @property
     def total_mass(self):
-        stage_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited())
+        stage_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited() or stage.is_throttled())
         return stage_mass + self.payload_weight
     
 
@@ -106,16 +129,42 @@ class Rocket:
         
         
         #Compute thrust based on current pitch
-        target_thrust = self.current_stage.thrust if self.current_stage else 0
 
-        if self.current_stage.is_throttled() and not self.current_stage.is_burned_out():
-            alpha_thrust = 0.05
-            self.current_thrust = getattr(self, "current_thrust", self.current_stage.nominal_thrust)
-            self.current_thrust += (target_thrust -self.current_thrust) * alpha_thrust
+        # Thrust throttling
+        target_fraction = 0.0
+
+        if self.current_stage:
+            if 0 < self.t < 60:
+                if self.current_stage.is_ignited() and not self.current_stage.is_burned_out():
+                    target_fraction = self.launch_throttle #throttle down to preserve energy
+                    self.current_stage.throttle = self.launch_throttle
+                    
+            elif self.current_stage.is_throttled() and not self.current_stage.is_burned_out():
+                target_fraction = self.max_q_throttle    #throttle down for max Q
+                self.current_stage.throttle = self.max_q_throttle
+
+            elif self.current_stage.is_ignited() and not self.current_stage.is_burned_out():
+                target_fraction = 1.00  #max thrust
+                self.current_stage.throttle = 1.0
+            else:
+                target_fraction = 0.0
         else:
-            self.current_thrust = target_thrust
+            target_fraction = 0.0
 
-        T_x, T_y = physics.calc_thrust(target_thrust, self.pitch_angle)
+        # Rate-limit the change
+        max_change = self.throttle_rate_limit * dt
+        current_fraction = self.current_thrust / self.current_stage.nominal_thrust if self.current_thrust > 0 else 1.0
+
+        delta = target_fraction - current_fraction
+        clamped_delta = max(min(delta, max_change), -max_change)
+
+        new_fraction = current_fraction + clamped_delta
+
+        self.current_thrust = self.current_stage.nominal_thrust * new_fraction
+        self.target_thrust_fraction = target_fraction  # optional tracking
+        
+
+        T_x, T_y = physics.calc_thrust(self.current_thrust, self.pitch_angle)
 
         #Compute accelerations
         self.ay, self.ax = physics.acceleration(self, T_y, T_x)
@@ -155,8 +204,8 @@ class Rocket:
 
         #Debug exit condition block, change to focus stop points to check telemetry
         if (
-            self.state == rocket_state.ORBIT_COAST
-            or self.current_stage.state == stage_state.SECO
+            self.state == rocket_state.STAGE1_SEPARATION
+            or self.current_stage.state == stage_state.MECO
             or self.current_stage.state == stage_state.BURNED_OUT
             or self.t >= 300
         ):
@@ -176,15 +225,19 @@ class Rocket:
         
         pitch_deg = math.degrees(self.pitch_angle)
         current_Q = physics.dynamic_pressure(vy=self.vy, y=self.y) #Pa
+        
+        if current_Q > self.max_Q:
+            self.max_Q = current_Q
+        if self.max_Q > current_Q:
+            self.sim_running = False
+        
+
         V_r = abs(self.v_r)
         
         fuel = 0.0
         if self.current_stage is not None:
             fuel = self.current_stage.fuel_mass
-            if self.current_stage.state == stage_state.THROTTLE_DOWN:
-                burn_rate = self.current_stage.throttled_burn_rate
-            else:
-                burn_rate = self.current_stage.burn_rate
+            burn_rate = self.current_stage.current_burn_rate
 
         if self.state == rocket_state.IDLE:
             self.vy = 0
@@ -227,6 +280,7 @@ class Rocket:
             f"\n"
             f"AERODYNAMICS:\n"
             f"Q:             {current_Q:10.2f} Pa\n"
+            f"max_Q:         {self.max_Q:10.2f} Pa\n"
             f"\n"
             f"PROPULSION / MASS:\n"
             f"Thrust:        {self.current_thrust:10.0f} N\n"

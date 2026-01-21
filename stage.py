@@ -21,14 +21,16 @@ class Stage:
         self.fuel_mass = fuel_mass
         self.nominal_thrust = thrust
         self.burn_rate = burn_rate
+        self.current_burn_rate = 0
+        self.throttle = 1.0
         self.throttled_burn_rate = self.burn_rate * 0.8
 
     @property
     def thrust(self):
-        if self.is_ignited() and not self.is_burned_out():
-            return self.nominal_thrust
-        elif self.is_throttled() and not self.is_burned_out():
-            return self.nominal_thrust * 0.8
+        if ((self.is_throttled() or self.is_ignited()) 
+            and not self.is_burned_out()
+        ):
+            return self.nominal_thrust * self.throttle
         else:
             return 0
         
@@ -41,23 +43,17 @@ class Stage:
 
     def update(self, dt):
         if self.is_ignited() or self.is_throttled() and self.fuel_mass > 0:
-            if self.is_throttled():
-                self.fuel_mass -= self.throttled_burn_rate * dt
-            else:
-                self.fuel_mass -= self.burn_rate * dt
+            self.current_burn_rate = self.burn_rate * self.throttle
+
+            fuel_consumed = self.current_burn_rate * dt
+            self.fuel_mass -= fuel_consumed
+
             if self.fuel_mass <= 0:
                 self.fuel_mass = 0
-                self.state = stage_state.BURNED_OUT
-        
+                self.throttle = 0
+                    
 
-    def set_stage_state(self):
-        match self.state:
-            case stage_state.IGNITED:
-                return
-            case stage_state.THROTTLE_DOWN:
-                return
-
-
+    
     #HELPERS
 
     def is_created(self):

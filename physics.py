@@ -60,6 +60,10 @@ def gravity_force(t_mass, y, x):
     return Fg_y, Fg_x
 
 
+def centripetal_force(t_mass, t_velocity, y):
+    return t_mass * t_velocity**2 / update_r(y)
+
+
 def air_density(y):
     rho0 = 1.225 # kg/m^3 at sea level
     H = 8500 # scale height in meters
@@ -74,16 +78,20 @@ def air_density(y):
     return rho
 
 
-def centripetal_force(t_mass, t_velocity, y):
-    return t_mass * t_velocity**2 / update_r(y)
-
-
 def drag_force(y, t_velocity, ref_area, vx, vy):
     if t_velocity == 0:
         return 0.0, 0.0
 
     rho = air_density(y)
+    mach = t_velocity / 343.0 # ~Speed of sound
+
+    #simple transonic drag spike
     C_d = 0.3
+    if 0.8 < mach < 1.2:
+        C_d = 0.4 # The "Sound Barrier" drag increase
+    elif mach >= 1.2:
+        C_d = 0.4 # Supersonic smoothing
+        
     drag = 0.5 * rho * t_velocity**2 * C_d * ref_area
 
     drag_x = -drag * (vx / t_velocity)
