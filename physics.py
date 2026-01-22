@@ -30,6 +30,9 @@ def velocity_unit_vec(vx, vy, t_velocity):
 def total_velocity(vx, vy):
     return math.sqrt((vx**2) + (vy**2))
 
+def total_accel(ay, ax):
+    return math.sqrt(ay**2 + ax**2)
+
 
 def velocity_to_pitch(vx,vy):
     return math.atan2(vx,vy)
