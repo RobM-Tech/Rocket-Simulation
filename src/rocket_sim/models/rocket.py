@@ -1,5 +1,5 @@
 import physics, time, math
-from stage import stage_state, Stage, empty_stage
+from rocket_sim.models.stage import stage_state, Stage, empty_stage
 from enum import Enum
 
 class rocket_state(Enum):

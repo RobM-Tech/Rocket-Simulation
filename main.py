@@ -1,6 +1,6 @@
 import time
 from rocket_sim.models import rocket
-import stage
+from rocket_sim.models import stage
 
 def main():
     # Initialize the rocket
