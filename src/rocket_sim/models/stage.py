@@ -22,6 +22,7 @@ class Stage:
         self.current_burn_rate = 0
         self.throttle = 1.0
         self.throttled_burn_rate = self.stage_config.burn_rate * 0.8
+        self.current_fuel_mass = self.stage_config.fuel_mass
         
 
     @property
@@ -37,18 +38,18 @@ class Stage:
         return f"Stage(state='{self.state.name}')"
         
     def calc_total_mass(self):
-        return self.stage_config.fuel_mass + self.stage_config.dry_mass
+        return self.current_fuel_mass + self.stage_config.dry_mass
     
 
     def update(self, dt):
-        if self.is_ignited() or self.is_throttled() and self.stage_config.fuel_mass > 0:
+        if self.is_ignited() or self.is_throttled() and self.current_fuel_mass > 0:
             self.current_burn_rate = self.stage_config.burn_rate * self.throttle
 
             fuel_consumed = self.current_burn_rate * dt
-            self.stage_config.fuel_mass -= fuel_consumed
+            self.current_fuel_mass -= fuel_consumed
 
-            if self.stage_config.fuel_mass <= 0:
-                self.stage_config.fuel_mass = 0
+            if self.current_fuel_mass <= 0:
+                self.current_fuel_mass = 0
                 self.throttle = 0
                     
 

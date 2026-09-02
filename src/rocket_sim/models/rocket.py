@@ -448,7 +448,7 @@ class Rocket:
 
     def stage_is_eligible(self, stage):
         if (stage.state in (stage_state.ATTACHED, stage_state.IGNITED)
-            and stage.stage_config.fuel_mass > 0):
+            and stage.current_fuel_mass > 0):
             return True
         return False
     
@@ -507,7 +507,7 @@ class Rocket:
         
         fuel = 0.0
         if self.current_stage is not None:
-            fuel = self.current_stage.stage_config.fuel_mass
+            fuel = self.current_stage.current_fuel_mass
             burn_rate = self.current_stage.current_burn_rate
 
         if self.state == rocket_state.IDLE:
