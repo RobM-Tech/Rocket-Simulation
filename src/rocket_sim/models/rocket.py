@@ -249,7 +249,7 @@ class Rocket:
                     target_pitch = self.command_pitch
 
                 if self.current_stage.is_throttled():
-                    throttle_ratio = self.current_stage.thrust / self.current_stage.nominal_thrust
+                    throttle_ratio = self.current_stage.thrust / self.current_stage.stage_config.thrust
                     
                     pitch_bias = math.radians(5) * (1 - throttle_ratio)
                     target_pitch -= pitch_bias
@@ -270,12 +270,12 @@ class Rocket:
                     )
                     or self.t >= self.s1_nominal_burn_time
                 ):
-                    self.current_stage.nominal_thrust = 0.0
+                    self.current_stage.stage_config.thrust = 0.0
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
                 
                 elif self.t > self.s1_nominal_burn_time + 20:
-                    self.current_stage.nominal_thrust = 0.0
+                    self.current_stage.stage_config.thrust = 0.0
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
 
@@ -339,7 +339,7 @@ class Rocket:
 
             case rocket_state.ORBIT_COAST:
                 
-                self.current_stage.nominal_thrust = 0
+                self.current_stage.stage_config.thrust = 0
                 self.current_thrust = 0
 
             case _:
@@ -397,10 +397,10 @@ class Rocket:
                 # Force = Mass * Acceleration
                 required_force = self.total_mass * self.g_limit
 
-                if self.current_stage.nominal_thrust == 0:
+                if self.current_stage.stage_config.thrust == 0:
                     goal_fraction = 0.0
                 else:
-                    goal_fraction = required_force / self.current_stage.nominal_thrust
+                    goal_fraction = required_force / self.current_stage.stage_config.thrust
 
                 goal_fraction = max(0.4, min(goal_fraction, 1.0))
                 
@@ -408,11 +408,11 @@ class Rocket:
             goal_fraction = 0.0
 
         # Rate-limit the change
-        if self.current_stage.nominal_thrust == 0:
+        if self.current_stage.stage_config.thrust == 0:
             self.curr_thrust_frac = 0.0
             return 0.0
         
-        current_fraction = self.current_thrust / self.current_stage.nominal_thrust if self.current_thrust > 0 else 1.0
+        current_fraction = self.current_thrust / self.current_stage.stage_config.thrust if self.current_thrust > 0 else 1.0
         max_change = self.throttle_rate_limit * dt
     
         delta = goal_fraction - current_fraction
@@ -421,7 +421,7 @@ class Rocket:
         new_fraction = current_fraction + clamped_delta
 
         self.current_stage.throttle = new_fraction
-        self.current_thrust = self.current_stage.nominal_thrust * new_fraction
+        self.current_thrust = self.current_stage.stage_config.thrust * new_fraction
         self.curr_thrust_frac = new_fraction
         
 
@@ -448,7 +448,7 @@ class Rocket:
 
     def stage_is_eligible(self, stage):
         if (stage.state in (stage_state.ATTACHED, stage_state.IGNITED)
-            and stage.fuel_mass > 0):
+            and stage.stage_config.fuel_mass > 0):
             return True
         return False
     
@@ -507,7 +507,7 @@ class Rocket:
         
         fuel = 0.0
         if self.current_stage is not None:
-            fuel = self.current_stage.fuel_mass
+            fuel = self.current_stage.stage_config.fuel_mass
             burn_rate = self.current_stage.current_burn_rate
 
         if self.state == rocket_state.IDLE:

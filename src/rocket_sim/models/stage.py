@@ -1,4 +1,5 @@
 from enum import Enum
+from rocket_sim.config.stage_config import StageConfig
 
 class stage_state(Enum):
     CREATED = 1
@@ -15,22 +16,20 @@ class stage_state(Enum):
 
 # Define a stage that Rocket() gets data from
 class Stage:
-    def __init__(self, dry_mass, fuel_mass, thrust, burn_rate):
+    def __init__(self, config: StageConfig):
         self.state = stage_state.CREATED
-        self.dry_mass = dry_mass
-        self.fuel_mass = fuel_mass
-        self.nominal_thrust = thrust
-        self.burn_rate = burn_rate
+        self.stage_config = config
         self.current_burn_rate = 0
         self.throttle = 1.0
-        self.throttled_burn_rate = self.burn_rate * 0.8
+        self.throttled_burn_rate = self.stage_config.burn_rate * 0.8
+        
 
     @property
     def thrust(self):
         if ((self.is_throttled() or self.is_ignited()) 
             and not self.is_burned_out()
         ):
-            return self.nominal_thrust * self.throttle
+            return self.stage_config.thrust * self.throttle
         else:
             return 0
         
@@ -38,18 +37,18 @@ class Stage:
         return f"Stage(state='{self.state.name}')"
         
     def calc_total_mass(self):
-        return self.fuel_mass + self.dry_mass
+        return self.stage_config.fuel_mass + self.stage_config.dry_mass
     
 
     def update(self, dt):
-        if self.is_ignited() or self.is_throttled() and self.fuel_mass > 0:
-            self.current_burn_rate = self.burn_rate * self.throttle
+        if self.is_ignited() or self.is_throttled() and self.stage_config.fuel_mass > 0:
+            self.current_burn_rate = self.stage_config.burn_rate * self.throttle
 
             fuel_consumed = self.current_burn_rate * dt
-            self.fuel_mass -= fuel_consumed
+            self.stage_config.fuel_mass -= fuel_consumed
 
-            if self.fuel_mass <= 0:
-                self.fuel_mass = 0
+            if self.stage_config.fuel_mass <= 0:
+                self.stage_config.fuel_mass = 0
                 self.throttle = 0
                     
 
