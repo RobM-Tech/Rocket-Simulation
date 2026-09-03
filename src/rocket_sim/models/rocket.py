@@ -1,6 +1,9 @@
 import time, math
 from rocket_sim.physics import physics
-from rocket_sim.models.stage import stage_state, empty_stage
+from rocket_sim.models.stage import stage_state, empty_stage, Stage
+from rocket_sim.config.rocket_config import RocketConfig
+from rocket_sim.config.stage_config import StageConfig
+
 from enum import Enum
 
 class rocket_state(Enum):
@@ -16,12 +19,22 @@ class rocket_state(Enum):
     
 
 class Rocket:
-    def __init__(self, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0, ref_area=0.0, payload_weight=0.0):
+    def __init__(self, rocket_config: RocketConfig, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0):
+        self.rkt_config = rocket_config
+        self.stage_config = rocket_config.stages
+        self.state          = rocket_state.IDLE
+        self.stages         = []
+
+        stage1 = Stage(self.stage_config[0])
+        stage2 = Stage(self.stage_config[1])
+
+        self.attach_stage(stage1)
+        self.attach_stage(stage2)
         
         # ────────────────────────────────────────────────
         #  Simulation control & book-keeping
         # ────────────────────────────────────────────────
-        self.state          = rocket_state.IDLE
+        
         self.t              = 0.0
         self.sim_running    = False
         self.orbit_initialized = False
@@ -60,7 +73,7 @@ class Rocket:
         # ────────────────────────────────────────────────
         #  Staging & stage references
         # ────────────────────────────────────────────────
-        self.stages         = []
+        
         self.current_stage  = None
         self.next_stage     = None
         self.time_since_sep = 0.0
@@ -105,9 +118,11 @@ class Rocket:
         # ────────────────────────────────────────────────
         #  Payload & ejectables
         # ────────────────────────────────────────────────
+        """
         self.reference_area     = ref_area            # m² 
         self.payload_weight     = payload_weight      # kg
         self.fairing_weight     = 1750                # kg
+        """
         self.fairing_jettisoned = False
 
         # ────────────────────────────────────────────────
@@ -120,7 +135,7 @@ class Rocket:
     @property
     def total_mass(self):
         stage_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited() or stage.is_throttled())
-        return stage_mass + self.payload_weight
+        return stage_mass + self.rkt_config.payload_weight
     
 
     def __repr__(self):

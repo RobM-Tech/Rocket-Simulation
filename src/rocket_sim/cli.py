@@ -1,22 +1,12 @@
 import time
 from rocket_sim.models import rocket
-from rocket_sim.models import stage
 from rocket_sim.config import falcon9_config
 
 def main():
     # Initialize the rocket
 
-    Falcon_9 = rocket.Rocket(y=15.0, ref_area=10.52, payload_weight=17_500.0)
+    Falcon_9 = rocket.Rocket(falcon9_config.falcon9_rocket, y=15.0)
 
-    #Initialize Stage(s)
-    
-    stage1 = stage.Stage(config=falcon9_config.stage1)
-    stage2 = stage.Stage(config=falcon9_config.stage2)
-    
-    
-    Falcon_9.attach_stage(stage1)
-    
-    Falcon_9.attach_stage(stage2)
     orbit_velocity = 9000  # Escape altitude in meters
 
     #Time
@@ -26,7 +16,7 @@ def main():
     
 
     # Launch count down. For fun!
-    cd = 3
+    cd = 1
     
     while cd > 0:
             print(f"Launch in t-minus: {cd:.2f}s\r", end="", flush=True)

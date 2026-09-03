@@ -126,7 +126,7 @@ def acceleration(rkt, T_y, T_x):
     vx = rkt.vx
     
 
-    ref_area = rkt.reference_area
+    ref_area = rkt.rkt_config.ref_area
     t_velocity = rkt.total_velocity
 
     net_force_y, net_force_x = net_force(T_y, T_x, vx, vy, t_mass, y, x, t_velocity, ref_area)
