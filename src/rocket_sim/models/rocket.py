@@ -2,7 +2,8 @@ import time, math
 from rocket_sim.physics import physics
 from rocket_sim.models.stage import stage_state, empty_stage, Stage
 from rocket_sim.config.rocket_config import RocketConfig
-from rocket_sim.config.stage_config import StageConfig
+
+
 
 from enum import Enum
 
@@ -19,9 +20,9 @@ class rocket_state(Enum):
     
 
 class Rocket:
-    def __init__(self, rocket_config: RocketConfig, x=0.0, y=0.0, vx=0.0, vy=0.0, ax=0.0, ay=0.0):
-        self.rkt_config = rocket_config
-        self.stage_config = rocket_config.stages
+    def __init__(self, rocket_config: RocketConfig, y):
+        self.rkt_config     = rocket_config
+        self.stage_config   = rocket_config.stages
         self.state          = rocket_state.IDLE
         self.stages         = []
 
@@ -51,12 +52,12 @@ class Rocket:
         # ────────────────────────────────────────────────
         #  State — kinematics
         # ────────────────────────────────────────────────
-        self.x              = x
+        self.x              = 0.0
         self.y              = y
-        self.vx             = vx
-        self.vy             = vy
-        self.ax             = ax
-        self.ay             = ay
+        self.vx             = 0.0
+        self.vy             = 0.0
+        self.ax             = 0.0
+        self.ay             = 0.0
         self.total_velocity = 0.0
         self.total_accel    = 0.0
         self.v_r            = 0.0                   # radial velocity component
@@ -134,8 +135,10 @@ class Rocket:
 
     @property
     def total_mass(self):
-        stage_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited() or stage.is_throttled())
-        return stage_mass + self.rkt_config.payload_weight
+        total_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited() or stage.is_throttled()) + self.rkt_config.payload_weight
+        if not self.fairing_jettisoned:
+            total_mass = total_mass + self.rkt_config.fairing_weight
+        return  total_mass
     
 
     def __repr__(self):
@@ -285,12 +288,12 @@ class Rocket:
                     )
                     or self.t >= self.s1_nominal_burn_time
                 ):
-                    self.current_stage.stage_config.thrust = 0.0
+                    
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
                 
                 elif self.t > self.s1_nominal_burn_time + 20:
-                    self.current_stage.stage_config.thrust = 0.0
+                    
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
 
@@ -322,7 +325,6 @@ class Rocket:
             case rocket_state.STAGE2_ASCENT:
                 # Fairing jettison
                 if not self.fairing_jettisoned and self.y >= 110000:
-                    self.payload_weight -= self.fairing_weight
                     self.fairing_jettisoned = True
 
                 time_since_ignition = self.t - self.time_s2_Ignition
@@ -354,8 +356,7 @@ class Rocket:
 
             case rocket_state.ORBIT_COAST:
                 
-                self.current_stage.stage_config.thrust = 0
-                self.current_thrust = 0
+                pass
 
             case _:
                 pass

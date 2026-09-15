@@ -10,7 +10,7 @@ def main():
     orbit_velocity = 9000  # Escape altitude in meters
 
     #Time
-    MAX_SIM_TIME = 3600
+    
     dt =  0.01  # Time step in seconds
     t = 0  # Initial time 
     
