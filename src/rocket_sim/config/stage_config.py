@@ -6,4 +6,5 @@ class StageConfig:
     fuel_mass: float
     thrust: float 
     burn_rate: float 
+    throttle_percent: float = 0.8
     

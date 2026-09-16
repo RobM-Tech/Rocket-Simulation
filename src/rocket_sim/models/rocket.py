@@ -2,6 +2,7 @@ import time, math
 from rocket_sim.physics import physics
 from rocket_sim.models.stage import stage_state, empty_stage, Stage
 from rocket_sim.config.rocket_config import RocketConfig
+from rocket_sim.guidance import pitch_init
 
 
 
@@ -23,6 +24,9 @@ class Rocket:
     def __init__(self, rocket_config: RocketConfig, y):
         self.rkt_config     = rocket_config
         self.stage_config   = rocket_config.stages
+        self.pitch_init     = rocket_config.pitch_init
+        self.s1_guidance    = rocket_config.s1_guidance
+        self.s2_guidance    = rocket_config.s2_guidance
         self.state          = rocket_state.IDLE
         self.stages         = []
 
@@ -65,7 +69,7 @@ class Rocket:
         # ────────────────────────────────────────────────
         #  Attitude & guidance
         # ────────────────────────────────────────────────
-        self.pitch_angle        = math.radians(0.0)
+        self.current_pitch      = math.radians(self.pitch_init.starting_pitch)
         self.command_pitch      = math.radians(8.0)
         self.command_pitch_done = False
         self.est_apo            = 0
@@ -121,8 +125,7 @@ class Rocket:
         # ────────────────────────────────────────────────
         """
         self.reference_area     = ref_area            # m² 
-        self.payload_weight     = payload_weight      # kg
-        self.fairing_weight     = 1750                # kg
+
         """
         self.fairing_jettisoned = False
 
@@ -179,7 +182,7 @@ class Rocket:
         # Thrust throttling
         self.current_thrust = self.thrust_throttle(dt)        
 
-        T_x, T_y = physics.calc_thrust(self.current_thrust, self.pitch_angle)
+        T_x, T_y = physics.calc_thrust(self.current_thrust, self.current_pitch)
 
         #Compute accelerations
         self.ay, self.ax = physics.acceleration(self, T_y, T_x)
@@ -204,8 +207,8 @@ class Rocket:
             return
         
         # recompute acceleration at new position
-        T_y = self.current_thrust * math.cos(self.pitch_angle)   # vertical
-        T_x = self.current_thrust * math.sin(self.pitch_angle)   # horizontal
+        T_y = self.current_thrust * math.cos(self.current_pitch)   # vertical
+        T_x = self.current_thrust * math.sin(self.current_pitch)   # horizontal
         self.ay, self.ax = physics.acceleration(self, T_y, T_x)
 
         # velocity Verlet step 2
@@ -235,15 +238,14 @@ class Rocket:
 
             case rocket_state.LAUNCH:
                 self.current_stage.state = stage_state.IGNITED
-                if self.y > 75:
+                if self.y > self.pitch_init.init_height:
                     self.state = rocket_state.PITCH_INITIATION
             
 
             case rocket_state.PITCH_INITIATION:
-                if self.pitch_angle > self.command_pitch:
-                    self.pitch_angle -= math.radians(0.2)  # increment small step
-                else:
-                    self.command_pitch_done = True
+                self.current_pitch, self.command_pitch_done = pitch_init.initialize_pitch(self.pitch_init,
+                                                                                          self.current_pitch,
+                                                                                          self.command_pitch_done)
                     
                 if self.command_pitch_done:
                     self.state = rocket_state.ASCENT_BURN
@@ -274,9 +276,9 @@ class Rocket:
 
                 # Smooth approach (avoid jumps)
                 max_delta = math.radians(0.5)  # max pitch change per timestep
-                delta_pitch = target_pitch - self.pitch_angle
+                delta_pitch = target_pitch - self.current_pitch
                 delta_pitch = max(min(delta_pitch, max_delta), -max_delta)
-                self.pitch_angle += delta_pitch
+                self.current_pitch += delta_pitch
                 
             
 
@@ -342,9 +344,9 @@ class Rocket:
 
                 # Smooth approach (avoid jumps)
                 max_delta = math.radians(0.025)
-                delta_pitch = target_pitch - self.pitch_angle
+                delta_pitch = target_pitch - self.current_pitch
                 delta_pitch = max(min(delta_pitch, max_delta), -max_delta)
-                self.pitch_angle += delta_pitch
+                self.current_pitch += delta_pitch
 
                 # Transition to orbit coast
                 if (
@@ -513,7 +515,7 @@ class Rocket:
         flight_path_angle = math.atan2(self.vy, self.vx)
         t_mass = self.total_mass
         
-        pitch_deg = math.degrees(self.pitch_angle)
+        pitch_deg = math.degrees(self.current_pitch)
         current_Q = physics.dynamic_pressure(vy=self.vy, y=self.y) #Pa
         if current_Q > self.max_Q:
             self.max_Q = current_Q
