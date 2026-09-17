@@ -1,4 +1,4 @@
-import math
+
 from rocket_sim.config.rocket_config import RocketConfig
 from rocket_sim.config.stage_config import StageConfig
 from rocket_sim.config.guidance_config import StageOneGuidance, StageTwoGuidance, PitchInitiation
@@ -20,10 +20,11 @@ stages = []
 stages.append(stage1)
 stages.append(stage2)
 
-pitch_init = PitchInitiation(starting_pitch= 0.0, # degree
-                             command_pitch= 8.0,  # degree
-                             init_height= 75,
-                             pitch_inc_step= 0.2)
+pitch_init = PitchInitiation(starting_pitch  = 0.0, # degree
+                             command_pitch   = 8.0,  # degree
+                             init_height     = 75,
+                             pitch_inc_step  = 0.2
+                             )
 
 s1_guidance = StageOneGuidance(s1_throttle_rate_limit  = 0.25,
                                s1_pitch_adjust_limit   = 0.5,    # degree fraction per second
@@ -38,18 +39,24 @@ s1_guidance = StageOneGuidance(s1_throttle_rate_limit  = 0.25,
                                s1_end_pitch          = 80.0,     # degree
                                s1_max_pitch_bias_deg = 5.0,      # degree
                                s1_throttle_dwn_time  = 50,       # s
-                               s1_throttle_up_time   = 85        # s
-                            )
+                               s1_throttle_up_time   = 85,       # s
+                               s1_MECO_delay         = 3.0       # s       
+                              )
 
-s2_guidance = StageTwoGuidance(s2_ramp_dur          = 30,      # s
-                                      s2_ramp_delay        = 5.0,     # s
-                                      s2_nominal_burn_time = 360,      # s
-                                      s2_orbital_velocity  = 7650,     # m/s
-                                      s2_target_apo        = 295,     
-                                      s2_vert_catch_pitch  = math.radians(78.0),
-                                      s2_mid_pitch         = math.radians(45.0),
-                                      s2_end_pitch         = math.radians(90.0)
-                                      )
+s2_guidance = StageTwoGuidance(s2_ramp_dur                  = 30,      # s
+                               s2_ramp_delay                = 5.0,     # s
+                               s2_nominal_burn_time         = 360,     # s
+                               s2_orbital_velocity          = 7650,    # m/s
+                               s2_target_apo                = 295,     
+                               s2_vert_catch_pitch          = 78.0,
+                               s2_mid_pitch                 = 45.0,
+                               s2_end_pitch                 = 90.0,
+                               s2_fairing_jettison_height = 110_000, # m
+                               s2_max_vert_catch_height     = 145_000, # m
+                               s2_pitch_adjust_limit_deg    = 0.025,
+                               s2_vert_catch_vy_limit       = 50,
+                               s2_ignition_delay            = 3.0
+                              )
 
 
 falcon9_rocket = RocketConfig(ref_area=10.52,
@@ -58,4 +65,5 @@ falcon9_rocket = RocketConfig(ref_area=10.52,
                               stages=stages,
                               pitch_init=pitch_init,
                               s1_guidance=s1_guidance,
-                              s2_guidance=s2_guidance)
+                              s2_guidance=s2_guidance
+                              )

@@ -2,7 +2,7 @@ import time, math
 from rocket_sim.physics import physics
 from rocket_sim.models.stage import stage_state, empty_stage, Stage
 from rocket_sim.config.rocket_config import RocketConfig
-from rocket_sim.guidance import pitch_init, stage_one_guidance
+from rocket_sim.guidance import pitch_init, stage_one_guidance, stage_two_guidance
 from rocket_sim.config.sim_config import SimConfig
 
 
@@ -30,13 +30,31 @@ class Rocket:
         self.s2_guidance    = rocket_config.s2_guidance
         self.state          = rocket_state.IDLE
         self.stages         = []
+        
 
         stage1 = Stage(self.stage_config[0])
         stage2 = Stage(self.stage_config[1])
 
         self.attach_stage(stage1)
         self.attach_stage(stage2)
-        
+
+        self.current_stage  = None
+        self.next_stage     = None
+
+        self.fairing_jettisoned = False
+
+        self.current_pitch      = math.radians(self.pitch_init.starting_pitch)
+        self.command_pitch_done = False
+        self.est_apo            = 0
+
+        self.time_since_sep = 0.0
+
+
+        self.target_thrust_fraction = 1.0     
+        self.curr_thrust_frac       = 0.0
+
+        self.applied_thrust = 0.0
+
         # ────────────────────────────────────────────────
         #  Simulation control & book-keeping
         # ────────────────────────────────────────────────
@@ -45,14 +63,7 @@ class Rocket:
         self.sim_running    = False
         self.orbit_initialized = False
         self.max_Q          = 0.0
-        self.max_G          = 3.5 * 9.81
-        self.g_limit        = 30.0 
-
-        # ────────────────────────────────────────────────
-        #  Target & orbit parameters
-        # ────────────────────────────────────────────────
-        self.target_orbit_altitude = 290_000          # m
-        self.target_r       = physics.R_e + self.target_orbit_altitude
+        self.target_r       = physics.R_e + SimConfig.target_orbit_altitude
 
         # ────────────────────────────────────────────────
         #  State — kinematics
@@ -67,58 +78,9 @@ class Rocket:
         self.total_accel    = 0.0
         self.v_r            = 0.0                   # radial velocity component
         self.r              = 0.0
-        # ────────────────────────────────────────────────
-        #  Attitude & guidance
-        # ────────────────────────────────────────────────
-        self.current_pitch      = math.radians(self.pitch_init.starting_pitch)
-       
-        self.command_pitch_done = False
-        self.est_apo            = 0
+
         
-
-        # ────────────────────────────────────────────────
-        #  Staging & stage references
-        # ────────────────────────────────────────────────
         
-        self.current_stage  = None
-        self.next_stage     = None
-        self.time_since_sep = 0.0
-        self.MECO_delay        = 3.0     # s
-        self.s2_ignition_delay = 3.0     # s   (real Falcon 9 is ~10–12 s — consider tuning)
-
-        # ────────────────────────────────────────────────
-        #  Tuning parameters — throttling
-        # ────────────────────────────────────────────────
-
-        self.target_thrust_fraction = 1.0     
-        self.curr_thrust_frac       = 0.0
-
-        # ────────────────────────────────────────────────
-        #  Tuning parameters — Stage 2
-        # ────────────────────────────────────────────────
-        self.s2_ramp_dur          = 30      # s
-        self.s2_ramp_delay        = 5.0     # s
-        self.s2_nominal_burn_time = 360      # s
-        self.S2_orbital_velocity  = 7650     # m/s
-        self.s2_target_apo = 295     
-        self.s2_vert_catch_pitch  = math.radians(78)
-        self.s2_mid_pitch         = math.radians(45)
-        self.s2_end_pitch         = math.radians(90)
-
-        # ────────────────────────────────────────────────
-        #  Payload & ejectables
-        # ────────────────────────────────────────────────
-        """
-        self.reference_area     = ref_area            # m² 
-
-        """
-        self.fairing_jettisoned = False
-
-        # ────────────────────────────────────────────────
-        #  Propulsion state
-        # ────────────────────────────────────────────────
-        self.applied_thrust = 0.0
-
 
 
     @property
@@ -256,7 +218,7 @@ class Rocket:
                 if (
                     (
                     self.y >= self.s1_guidance.s1_sep_min_alt
-                    and self.total_velocity >= self.s1_min_vel
+                    and self.total_velocity >= self.s1_guidance.s1_min_vel
                     )
                     or self.t >= self.s1_guidance.s1_nominal_burn_time
                 ):
@@ -273,7 +235,7 @@ class Rocket:
                 self.time_since_sep += dt
                 if self.current_stage.is_meco():
                     
-                    if self.time_since_sep >= self.MECO_delay:
+                    if self.time_since_sep >= self.s1_guidance.s1_MECO_delay:
                         self.detach_stage(self.current_stage)
                         self.current_stage = self.next_stage
                         self.next_stage = empty_stage()
@@ -283,7 +245,7 @@ class Rocket:
 
             case rocket_state.COAST:
                 self.time_since_sep += dt
-                if self.time_since_sep >= self.s2_ignition_delay:
+                if self.time_since_sep >= self.s2_guidance.s2_ignition_delay:
                     self.state = rocket_state.STAGE2_IGNITION
 
 
@@ -296,31 +258,19 @@ class Rocket:
 
             case rocket_state.STAGE2_ASCENT:
                 # Fairing jettison
-                if not self.fairing_jettisoned and self.y >= 110000:
+                if not self.fairing_jettisoned and self.y >= self.s2_guidance.s2_fairing_jettison_height:
                     self.fairing_jettisoned = True
 
-                time_since_ignition = self.t - self.time_s2_Ignition
-                #Time based pitch ramp
-                #Linear interpolation in time
-                
-
-                if self.est_apo < self.s2_target_apo:
-                    target_pitch = self.s2_mid_pitch
-                elif self.y < 145000 and self.vy < 50:
-                    target_pitch = self.s2_vert_catch_pitch
-                else:
-                    target_pitch = self.s2_end_pitch
-
-
-                # Smooth approach (avoid jumps)
-                max_delta = math.radians(0.025)
-                delta_pitch = target_pitch - self.current_pitch
-                delta_pitch = max(min(delta_pitch, max_delta), -max_delta)
-                self.current_pitch += delta_pitch
+                # Stage 2 guidance
+                self.current_pitch = stage_two_guidance.s2_guidance(self.s2_guidance,
+                                                                    self.current_pitch,
+                                                                    self.est_apo,
+                                                                    self.y,
+                                                                    self.vy)
 
                 # Transition to orbit coast
                 if (
-                    self.vx >= self.S2_orbital_velocity 
+                    self.vx >= self.s2_guidance.s2_orbital_velocity
                     or self.current_stage.state == stage_state.BURNED_OUT
                 ):
                     self.state = rocket_state.ORBIT_COAST

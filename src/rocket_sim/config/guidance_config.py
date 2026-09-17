@@ -27,7 +27,8 @@ class StageOneGuidance:
     s1_end_pitch: float
     s1_max_pitch_bias_deg: float         
     s1_throttle_dwn_time: float 
-    s1_throttle_up_time: float  
+    s1_throttle_up_time: float
+    s1_MECO_delay: float
 
 
 
@@ -45,3 +46,8 @@ class StageTwoGuidance:
     s2_vert_catch_pitch: float
     s2_mid_pitch: float         
     s2_end_pitch: float
+    s2_fairing_jettison_height: int
+    s2_max_vert_catch_height: int
+    s2_pitch_adjust_limit_deg: float
+    s2_vert_catch_vy_limit: float
+    s2_ignition_delay: float
