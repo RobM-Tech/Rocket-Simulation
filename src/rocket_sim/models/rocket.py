@@ -2,7 +2,8 @@ import time, math
 from rocket_sim.physics import physics
 from rocket_sim.models.stage import stage_state, empty_stage, Stage
 from rocket_sim.config.rocket_config import RocketConfig
-from rocket_sim.guidance import pitch_init
+from rocket_sim.guidance import pitch_init, stage_one_guidance
+from rocket_sim.config.sim_config import SimConfig
 
 
 
@@ -70,7 +71,7 @@ class Rocket:
         #  Attitude & guidance
         # ────────────────────────────────────────────────
         self.current_pitch      = math.radians(self.pitch_init.starting_pitch)
-        self.command_pitch      = math.radians(8.0)
+       
         self.command_pitch_done = False
         self.est_apo            = 0
         
@@ -85,26 +86,10 @@ class Rocket:
         self.MECO_delay        = 3.0     # s
         self.s2_ignition_delay = 3.0     # s   (real Falcon 9 is ~10–12 s — consider tuning)
 
-        
-
-        # ────────────────────────────────────────────────
-        #  Tuning parameters — Stage 1
-        # ────────────────────────────────────────────────
-        self.s1_ramp_dur          = 165      # s
-        self.s1_ramp_delay        = 10        # s
-        self.s1_min_vel           = 2350     # m/s
-        self.s1_sep_min_alt       = 65_000   # m
-        self.s1_nominal_burn_time = 160      # s
-        self.s1_start_pitch       = self.command_pitch
-        self.s1_end_pitch         = math.radians(80)
-        self.s1_throttle_dwn_time = 50       # s
-        self.s1_throttle_up_time  = 85       # s
-
         # ────────────────────────────────────────────────
         #  Tuning parameters — throttling
         # ────────────────────────────────────────────────
-        self.throttle_rate_limit    = 0.25    # fraction per second
-        self.max_q_throttle         = 0.7
+
         self.target_thrust_fraction = 1.0     
         self.curr_thrust_frac       = 0.0
 
@@ -132,7 +117,7 @@ class Rocket:
         # ────────────────────────────────────────────────
         #  Propulsion state
         # ────────────────────────────────────────────────
-        self.current_thrust = 0.0
+        self.applied_thrust = 0.0
 
 
 
@@ -180,9 +165,9 @@ class Rocket:
         #Compute thrust based on current pitch
 
         # Thrust throttling
-        self.current_thrust = self.thrust_throttle(dt)        
+        self.applied_thrust = self.thrust_throttle(dt)        
 
-        T_x, T_y = physics.calc_thrust(self.current_thrust, self.current_pitch)
+        T_x, T_y = physics.calc_thrust(self.applied_thrust, self.current_pitch)
 
         #Compute accelerations
         self.ay, self.ax = physics.acceleration(self, T_y, T_x)
@@ -207,8 +192,8 @@ class Rocket:
             return
         
         # recompute acceleration at new position
-        T_y = self.current_thrust * math.cos(self.current_pitch)   # vertical
-        T_x = self.current_thrust * math.sin(self.current_pitch)   # horizontal
+        T_y = self.applied_thrust * math.cos(self.current_pitch)   # vertical
+        T_x = self.applied_thrust * math.sin(self.current_pitch)   # horizontal
         self.ay, self.ax = physics.acceleration(self, T_y, T_x)
 
         # velocity Verlet step 2
@@ -253,48 +238,33 @@ class Rocket:
 
             case rocket_state.ASCENT_BURN:
                 
-                if self.t > self.s1_throttle_dwn_time:
+                if self.t > self.s1_guidance.s1_throttle_dwn_time:
                     self.current_stage.state = stage_state.THROTTLE_DOWN
 
-                if self.t > self.s1_throttle_up_time:
+                if self.t > self.s1_guidance.s1_throttle_up_time:
                     self.current_stage.state = stage_state.IGNITED
 
-                #Time based pitch
-                #Linear interpolation in time
-                time_since_launch = self.t
-                if time_since_launch > self.s1_ramp_delay:
-                    k = min((time_since_launch - self.s1_ramp_delay) / self.s1_ramp_dur, 1)
-                    target_pitch = self.s1_start_pitch + k * (self.s1_end_pitch - self.s1_start_pitch)
-                else:
-                    target_pitch = self.command_pitch
-
-                if self.current_stage.is_throttled():
-                    throttle_ratio = self.current_stage.thrust / self.current_stage.stage_config.thrust
-                    
-                    pitch_bias = math.radians(5) * (1 - throttle_ratio)
-                    target_pitch -= pitch_bias
-
-                # Smooth approach (avoid jumps)
-                max_delta = math.radians(0.5)  # max pitch change per timestep
-                delta_pitch = target_pitch - self.current_pitch
-                delta_pitch = max(min(delta_pitch, max_delta), -max_delta)
-                self.current_pitch += delta_pitch
-                
-            
+                # Stage 1 guidance
+                self.current_pitch = stage_one_guidance.s1_guidance(self.s1_guidance,
+                                                                    self.t,
+                                                                    self.current_pitch,
+                                                                    self.current_stage.throttle,
+                                                                    self.current_stage.is_throttled()
+                                                                    )
 
                 # Stage 1 separation trigger
                 if (
                     (
-                    self.y >= self.s1_sep_min_alt
+                    self.y >= self.s1_guidance.s1_sep_min_alt
                     and self.total_velocity >= self.s1_min_vel
                     )
-                    or self.t >= self.s1_nominal_burn_time
+                    or self.t >= self.s1_guidance.s1_nominal_burn_time
                 ):
                     
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
                 
-                elif self.t > self.s1_nominal_burn_time + 20:
+                elif self.t > self.s1_guidance.s1_nominal_burn_time + 20:
                     
                     self.state = rocket_state.STAGE1_SEPARATION
                     self.current_stage.state = stage_state.MECO
@@ -394,12 +364,12 @@ class Rocket:
                     goal_fraction = 0.75
                     
             elif 55 < self.t < 80 and self.y < 10000:
-                goal_fraction = self.max_q_throttle
+                goal_fraction = self.s1_guidance.s1_max_q_throttle
                 if self.ay > 15:
-                    goal_fraction = self.max_q_throttle
+                    goal_fraction = self.s1_guidance.s1_max_q_throttle
             
             elif self.t > 75 and self.current_stage.state == stage_state.THROTTLE_DOWN:
-                goal_fraction = self.max_q_throttle
+                goal_fraction = self.s1_guidance.s1_max_q_throttle
                     
             else:           
                 goal_fraction = self.target_thrust_fraction  #max thrust
@@ -410,10 +380,10 @@ class Rocket:
             elif self.is_stage2_ascent:
                 max_total_vel = 7650
 
-            if self.total_accel > self.g_limit or self.total_velocity > max_total_vel:
+            if self.total_accel > SimConfig.g_limit or self.total_velocity > max_total_vel:
                 # Calculate the exact throttle needed to stay at 3.5Gs
                 # Force = Mass * Acceleration
-                required_force = self.total_mass * self.g_limit
+                required_force = self.total_mass * SimConfig.g_limit
 
                 if self.current_stage.stage_config.thrust == 0:
                     goal_fraction = 0.0
@@ -430,8 +400,8 @@ class Rocket:
             self.curr_thrust_frac = 0.0
             return 0.0
         
-        current_fraction = self.current_thrust / self.current_stage.stage_config.thrust if self.current_thrust > 0 else 1.0
-        max_change = self.throttle_rate_limit * dt
+        current_fraction = self.applied_thrust / self.current_stage.stage_config.thrust if self.applied_thrust > 0 else 1.0
+        max_change = self.s1_guidance.s1_throttle_rate_limit * dt
     
         delta = goal_fraction - current_fraction
 
@@ -439,11 +409,11 @@ class Rocket:
         new_fraction = current_fraction + clamped_delta
 
         self.current_stage.throttle = new_fraction
-        self.current_thrust = self.current_stage.stage_config.thrust * new_fraction
+        self.applied_thrust = self.current_stage.stage_config.thrust * new_fraction
         self.curr_thrust_frac = new_fraction
         
 
-        return self.current_thrust
+        return self.applied_thrust
     
     def get_est_apo(self):
         mu       = physics.G * physics.M_e
@@ -559,7 +529,7 @@ class Rocket:
             f"\n"
             f"PROPULSION / MASS:\n"
             f"Thrust %:      {self.curr_thrust_frac:10.2f} % \n"
-            f"Thrust:        {self.current_thrust:10.0f} N\n"
+            f"Thrust:        {self.applied_thrust:10.0f} N\n"
             f"Fuel:          {fuel:10.2f} kg\n"
             f"Burn_r         {burn_rate:10.2f} kg/s\n"
             f"Mass:          {t_mass:10.2f} kg\n"

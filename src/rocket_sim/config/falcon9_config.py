@@ -20,24 +20,26 @@ stages = []
 stages.append(stage1)
 stages.append(stage2)
 
-pitch_init = PitchInitiation(starting_pitch= 0.0,
-                             command_picth= 8.0,
+pitch_init = PitchInitiation(starting_pitch= 0.0, # degree
+                             command_pitch= 8.0,  # degree
                              init_height= 75,
                              pitch_inc_step= 0.2)
 
-s1_guidance = StageOneGuidance(s1_throttle_rate_limit  = 0.25,    # fraction per second
-                                      s1_max_q_throttle       = 0.7,
+s1_guidance = StageOneGuidance(s1_throttle_rate_limit  = 0.25,
+                               s1_pitch_adjust_limit   = 0.5,    # degree fraction per second
+                               s1_max_q_throttle       = 0.7,
 
-                                      s1_ramp_dur          = 165,      # s
-                                      s1_ramp_delay        = 10,       # s
-                                      s1_min_vel           = 2350,     # m/s
-                                      s1_sep_min_alt       = 65_000,   # m
-                                      s1_nominal_burn_time = 160,      # s
-                                      s1_start_pitch       = math.radians(8.0),
-                                      s1_end_pitch         = math.radians(80.0),
-                                      s1_throttle_dwn_time = 50,       # s
-                                      s1_throttle_up_time  = 85        # s
-                                      )
+                               s1_ramp_dur           = 165,      # s
+                               s1_ramp_delay         = 10,       # s
+                               s1_min_vel            = 2350,     # m/s
+                               s1_sep_min_alt        = 65_000,   # m
+                               s1_nominal_burn_time  = 160,      # s
+                               s1_start_pitch        = 8.0,      # degree
+                               s1_end_pitch          = 80.0,     # degree
+                               s1_max_pitch_bias_deg = 5.0,      # degree
+                               s1_throttle_dwn_time  = 50,       # s
+                               s1_throttle_up_time   = 85        # s
+                            )
 
 s2_guidance = StageTwoGuidance(s2_ramp_dur          = 30,      # s
                                       s2_ramp_delay        = 5.0,     # s
