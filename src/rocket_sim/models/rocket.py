@@ -56,16 +56,6 @@ class Rocket:
         self.applied_thrust = 0.0
 
         # ────────────────────────────────────────────────
-        #  Simulation control & book-keeping
-        # ────────────────────────────────────────────────
-        
-        self.t              = 0.0
-        self.sim_running    = False
-        self.orbit_initialized = False
-        self.max_Q          = 0.0
-        self.target_r       = physics.R_e + SimConfig.target_orbit_altitude
-
-        # ────────────────────────────────────────────────
         #  State — kinematics
         # ────────────────────────────────────────────────
         self.x              = 0.0
@@ -79,13 +69,30 @@ class Rocket:
         self.v_r            = 0.0                   # radial velocity component
         self.r              = 0.0
 
+
+        # ────────────────────────────────────────────────
+        #  Simulation control & book-keeping
+        # ────────────────────────────────────────────────
+        
+        self.t              = 0.0
+        self.sim_running    = False
+        self.orbit_initialized = False
+        self.max_Q          = 0.0
+        self.current_Q      = 0.0 #Pa
+        self.target_r       = physics.R_e + SimConfig.target_orbit_altitude
+
+
+
         
         
 
 
     @property
     def total_mass(self):
-        total_mass = sum(stage.calc_total_mass() for stage in self.stages if stage.is_attached() or stage.is_ignited() or stage.is_throttled()) + self.rkt_config.payload_weight
+        total_mass = sum(stage.calc_total_mass() 
+                         for stage in self.stages 
+                         if not stage.is_separated()) + self.rkt_config.payload_weight
+        
         if not self.fairing_jettisoned:
             total_mass = total_mass + self.rkt_config.fairing_weight
         return  total_mass
@@ -167,6 +174,11 @@ class Rocket:
         self.total_velocity = physics.total_velocity(self.vx, self.vy)
         self.total_accel = physics.total_accel(self.ay, self.ax)
 
+        # update dynamic pressure
+        self.current_Q   = physics.dynamic_pressure(vy=self.vy, y=self.y) #Pa
+        if self.current_Q > self.max_Q:
+            self.max_Q = self.current_Q
+
         #calculate est apo
         self.est_apo = self.get_est_apo()
     
@@ -179,6 +191,8 @@ class Rocket:
     def set_rocket_state(self, dt):
         match self.state:
             case rocket_state.IDLE:
+                self.vy = 0
+                self.ay = 0
                 self.set_current_stage()
                 self.state = rocket_state.LAUNCH
 
@@ -300,6 +314,14 @@ class Rocket:
     # ────────────────────────────────────────────────
 
     def thrust_throttle(self, dt):
+        if self.current_stage is None:
+            return 0.0
+        if (self.is_orbit_coast() 
+            or self.current_stage.state in (stage_state.SECO, stage_state.MECO)
+            ):
+            self.curr_thrust_frac = 0
+            return 0.0
+
         goal_fraction = self.target_thrust_fraction
         
         #Manage thrust output for first 15km then full burn
@@ -362,7 +384,6 @@ class Rocket:
         self.applied_thrust = self.current_stage.stage_config.thrust * new_fraction
         self.curr_thrust_frac = new_fraction
         
-
         return self.applied_thrust
     
     def get_est_apo(self):
@@ -432,69 +453,48 @@ class Rocket:
     # ────────────────────────────────────────────────
 
     def get_telemetry(self):
+        telemetry_data    = {}
+
         flight_path_angle = math.atan2(self.vy, self.vx)
-        t_mass = self.total_mass
-        
-        pitch_deg = math.degrees(self.current_pitch)
-        current_Q = physics.dynamic_pressure(vy=self.vy, y=self.y) #Pa
-        if current_Q > self.max_Q:
-            self.max_Q = current_Q
-
-
-        V_r = abs(self.v_r)
-        
-        fuel = 0.0
+        t_mass            = self.total_mass
+        pitch_deg         = math.degrees(self.current_pitch)
+        V_r               = abs(self.v_r)
+        fuel              = 0.0
+        burn_rate         = 0.0
         if self.current_stage is not None:
             fuel = self.current_stage.current_fuel_mass
             burn_rate = self.current_stage.current_burn_rate
 
-        if self.state == rocket_state.IDLE:
-            self.vy = 0
-            self.ay = 0
-        Fg_y, Fg_x = physics.gravity_force(self.total_mass, self.y, self.x)
-        Fg_y = Fg_y / 1000
-        Fg_x = Fg_x / 1000
+        Fg_y, Fg_x        = physics.gravity_force(self.total_mass, self.y, self.x)
+        Fg_y              = Fg_y / 1000
+        Fg_x              = Fg_x / 1000
 
-        #For DEBUGGING
+        telemetry_data["v_total"] = self.total_velocity
+        telemetry_data["total_accel"] = self.total_accel
+        telemetry_data["y"] = self.y
+        telemetry_data["vy"] = self.vy
+        telemetry_data["ay"] = self.ay
+        telemetry_data["x"] = self.x
+        telemetry_data["vx"] = self.vx
+        telemetry_data["ax"] = self.ax
+        telemetry_data["pitch"] = pitch_deg
+        telemetry_data["flight_path_a"] = flight_path_angle
+        telemetry_data["fg_y"] = Fg_y
+        telemetry_data["fg_x"] = Fg_x
+        telemetry_data["q"] = self.current_Q
+        telemetry_data["max_q"] = self.max_Q
+        telemetry_data["thrust_%"] = self.curr_thrust_frac
+        telemetry_data["thrust"] = self.applied_thrust
+        telemetry_data["fuel"] = fuel
+        telemetry_data["burn_r"] = burn_rate
+        telemetry_data["mass"] = t_mass
+        telemetry_data["v_r"] = V_r
+        telemetry_data["r"] = self.r
+        telemetry_data["rocket_state"] = self.state.name
+        telemetry_data["current_stage"] = self.current_stage.state.name if self.current_stage else 'None'
+        telemetry_data["next_stage"] = self.next_stage.state.name if self.next_stage else 'None'
+        telemetry_data["est_apoapsis"] = self.est_apo
+        telemetry_data["t"] = self.t
+
+        return telemetry_data
         
-
-        telemetry = (
-            f"KINEMATICS:\n"
-            f"V_total:       {self.total_velocity:10.2f} m/s\n"
-            f"Total accel:   {self.total_accel:10.2f} m/s²\n"
-            f"y:             {self.y:10.2f} m\n"
-            f"Vy:            {self.vy:10.2f} m/s\n"
-            f"Ay:            {self.ay:10.2f} m/s²\n"
-            f"x:             {self.x:10.2f} m\n"
-            f"Vx:            {self.vx:10.2f} m/s\n"
-            f"Ax:            {self.ax:10.2f} m/s²\n"
-            f"Pitch:         {pitch_deg:10.2f}\n"
-            f"Flight_path_a  {flight_path_angle:10.2f}\n"
-            f"Fg_y:          {Fg_y:10.2f} kN\n"
-            f"Fg_x:          {Fg_x:10.2f} kN\n"
-            f"\n"
-            f"AERODYNAMICS:\n"
-            f"Q:             {current_Q:10.2f} Pa\n"
-            f"max_Q:         {self.max_Q:10.2f} Pa\n"
-            f"\n"
-            f"PROPULSION / MASS:\n"
-            f"Thrust %:      {self.curr_thrust_frac:10.2f} % \n"
-            f"Thrust:        {self.applied_thrust:10.0f} N\n"
-            f"Fuel:          {fuel:10.2f} kg\n"
-            f"Burn_r         {burn_rate:10.2f} kg/s\n"
-            f"Mass:          {t_mass:10.2f} kg\n"
-            f"\n"
-            f"Guidence:\n"
-            f"V_r:           {V_r:10.2f}\n"
-            f"r              {self.r:10.2f}\n"
-            f"\n"
-            f"FLIGHT STATE:\n"
-            f"Rocket State:  {self.state}\n"
-            f"Current Stage: {self.current_stage.state if self.current_stage else 'None'}\n"
-            f"Next Stage:    {self.next_stage.state if self.next_stage else 'None'}\n"
-            f"\n"
-            f"Est apoapsis: {self.est_apo:10.2f}\n"
-            f"T:            {self.t:10.2f}"
-        )
-
-        return telemetry

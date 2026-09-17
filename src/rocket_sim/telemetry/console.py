@@ -1,0 +1,43 @@
+
+
+def format_telemetry(data: dict):
+    telemetry = (
+                f"KINEMATICS:\n"
+                f"Speed:              {data['v_total']:10.2f} m/s\n"
+                f"Total accel:        {data['total_accel']:10.2f} m/s²\n"
+                f"Alt:                {data['y']:10.2f} m\n"
+                f"Vy:                 {data['vy']:10.2f} m/s\n"
+                f"Ay:                 {data['ay']:10.2f} m/s²\n"
+                f"Downrange:          {data['x']:10.2f} m\n"
+                f"Vx:                 {data['vx']:10.2f} m/s\n"
+                f"Ax:                 {data['ax']:10.2f} m/s²\n"
+                f"Pitch:              {data['pitch']:10.2f}\n"
+                f"Flight path angle:  {data['flight_path_a']:10.2f}\n"
+                f"Gravity Y:          {data['fg_y']:10.2f} kN\n"
+                f"Gravity X:          {data['fg_x']:10.2f} kN\n"
+                f"\n"
+                f"AERODYNAMICS:\n"
+                f"Dynamic pressure:   {data['q']:10.2f} Pa\n"
+                f"max_Q:              {data['max_q']:10.2f} Pa\n"
+                f"\n"
+                f"PROPULSION / MASS:\n"
+                f"Thrust %:           {data['thrust_%'] * 100:10.2f} % \n"
+                f"Thrust:             {data['thrust']:10.0f} N\n"
+                f"Fuel:               {data['fuel']:10.2f} kg\n"
+                f"Burn rate           {data['burn_r']:10.2f} kg/s\n"
+                f"Mass:               {data['mass']:10.2f} kg\n"
+                f"\n"
+                f"Guidance:\n"
+                f"Radial velocity:    {data['v_r']:10.2f}\n"
+                f"Geocentric r        {data['r']:10.2f}\n"
+                f"\n"
+                f"FLIGHT STATE:\n"
+                f"Rocket State:       {data['rocket_state']}\n"
+                f"Current Stage:      {data['current_stage']}\n"
+                f"Next Stage:         {data['next_stage']}\n"
+                f"\n"
+                f"Est. apoapsis:      {data['est_apoapsis']:10.2f}\n"
+                f"Mission time:       {data['t']:10.2f}"
+            )
+
+    return telemetry

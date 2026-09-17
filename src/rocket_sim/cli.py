@@ -1,6 +1,7 @@
 import time
 from rocket_sim.models import rocket
 from rocket_sim.config import falcon9_config
+from rocket_sim.telemetry.console import format_telemetry
 
 def main():
     # Initialize the rocket
@@ -43,12 +44,12 @@ def main():
                     f"{ss:05.2f}"
                     )
         
-        telemetry = Falcon_9.get_telemetry()
+        
         #prints updated telemetry on one line
         
         print("\033c", end="")  # clear screen (portable)
         print(f"Time: {time_str}s")
-        print(telemetry)
+        print(format_telemetry(Falcon_9.get_telemetry()))
         
         time.sleep(dt)  # Wait before the next iteration
     print("\n")
