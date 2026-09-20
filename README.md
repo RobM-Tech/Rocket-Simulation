@@ -1,54 +1,104 @@
 # Rocket Launch & Telemetry Simulation
 
-A physics-based, multi-stage rocket simulation written in Python. 
+# Rocket Launch & Telemetry Simulation
 
-This project focuses on correct Newtonian mechanics, staging, guidance, and clear telemetry rather than fancy graphics. The simulation models a Falcon 9-class vehicle up to near-orbital conditions. 
+Physics-based multi-stage rocket simulation in Python. Focuses on Newtonian mechanics, staging, guidance, and telemetry — not graphics. Models a Falcon 9–class vehicle through ascent to near-orbital conditions. 
 
-*Note: Full orbital insertion is not implemented yet.*
+**Full orbital insertion / circularization is not implemented yet.**
 
 ---
 
-## Current Status (v1.1.0)
+## Features
 
-The project is currently being reworked into a proper package structure:
+- **Multi-stage vehicle** with per-stage fuel and mass tracking.
+- **State-machine flight phases** (launch → pitch kick → ascent → staging → stage 2 → coast).
+- **Configurable guidance** (pitch initiation, stage 1 & 2 pitch programs).
+- **Atmospheric physics** modeling thrust, gravity, and atmospheric drag.
+- **Fairing jettison** implementation.
+- **Live console telemetry** tracking kinematics, aero, propulsion, and flight state.
+
+---
+
+## Project Layout
 
 ```text
 src/rocket_sim/
-├── models/       # Rocket + Stage
-├── physics/
-├── guidance/
-├── telemetry/
-└── config/
+├── cli.py            # Entry point / simulation loop
+├── config/           # Dataclasses + Falcon 9 vehicle data
+├── models/           # Rocket, Stage
+├── guidance/         # Pitch initiation, stage 1 & 2 guidance
+├── physics/          # Forces and motion helpers
+└── telemetry/        # Console formatter (data dict → text)
 ```
 
-> ⚠️ **In Progress:** Some files have been moved to the new structure, while others are still located at the root directory.
+- **Vehicle numbers** live in `config/` (especially `config/falcon9_config.py`).
+- **Guidance logic** lives under `guidance/`.
+- **The rocket state machine** orchestrates the different flight phases.
 
 ---
 
-## How to Run
+## Requirements
 
-Execute the simulation from the project root (with your virtual environment active):
+- **Python 3.10+**
+- [uv](https://github.com/astral-sh/uv) recommended (or standard `pip`)
+
+---
+
+## Setup
 
 ```bash
-python main.py
+git clone https://github.com/RobM-Tech/Rocket-Simulation.git
+cd Rocket-Simulation
+uv venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+uv pip install -e .
 ```
 
-*Live telemetry will print directly to the terminal.*
+---
+
+## Running the Simulation
+
+From the project root, with your virtual environment active, run either command:
+
+```bash
+python -m rocket_sim.cli
+```
+
+*or*
+
+```bash
+python src/rocket_sim/cli.py
+```
+
+> **Note:** Live telemetry prints directly to the terminal. A full ascent can take several minutes of real time because the simulation loop mirrors the simulation timestep (`dt`) with a sleep interval to provide a watchable readout.
 
 ---
 
-## What’s Modeled
+## Configuration
 
-* **Multi-stage vehicle:** Independent fuel tracking and mass properties per stage.
-* **State-machine flight phases:** Automated sequencing from liftoff to staging.
-* **Pitch guidance:** Initial gravity turn kick followed by programmatic ramps.
-* **Environmental physics:** Dynamic thrust, gravity losses, and atmospheric drag.
-* **Fairing jettison:** Aerodynamic shield deployment based on altitude.
-* **Live telemetry:** Real-time data streams for kinematics, aero, propulsion, and flight state.
+Edit `src/rocket_sim/config/falcon9_config.py** to tune parameters such as:
+- Stage masses, thrust, and burn rate.
+- Pitch schedules and staging thresholds.
+- Payload, fairing, and reference aerodynamic areas.
+
+*Note: Guidance angles in the configuration file are set in degrees; conversion to radians happens automatically inside the guidance functions.*
 
 ---
 
-## Known Limits
+## Current Limits
 
-* Reaches ~290 km altitude but cannot yet achieve full orbital velocity.
-* No circularization logic or advanced orbital mechanics implemented yet.
+- **No circular orbit modeling:** Reaches roughly orbital horizontal speed at high altitude, but does not transition into a stable circular orbit.
+- **No orbital insertion:** Coast-orbit physics are not yet implemented.
+- **Console-only telemetry:** Data outputs only to the terminal (CSV export is planned).
+- **No test suite:** Automated unit tests are not yet implemented.
+
+---
+
+## Current Status & Next Steps
+
+The structural refactor is complete, including the package layout, config-driven vehicle modules, extracted guidance logic, and a telemetry split between data processing and console formatting. 
+
+Future development is focused on:
+- Implementing faster, headless simulation runs.
+- Adding CSV telemetry logging.
+- Writing a comprehensive automated unit test suite.
