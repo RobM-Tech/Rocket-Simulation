@@ -116,8 +116,8 @@ class Rocket:
         # ────────────────────────────────────────────────────────────────────────────
         
         if (
-            self.state == rocket_state.ORBIT_COAST
-            or self.current_stage.state == stage_state.SECO
+            self.state == rocket_state.STAGE1_SEPARATION
+            or self.current_stage.state == stage_state.MECO
             or self.current_stage.state == stage_state.BURNED_OUT
             #or self.t >= 300
             #or self.y >= 15000

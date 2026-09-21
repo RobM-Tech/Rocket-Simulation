@@ -2,9 +2,11 @@ import time
 from rocket_sim.models import rocket
 from rocket_sim.config import falcon9_config
 from rocket_sim.telemetry.console import format_telemetry
+from rocket_sim.telemetry.exporters import recorder
 
 def main():
     # Initialize the rocket
+    FAST_MODE = True
 
     Falcon_9 = rocket.Rocket(falcon9_config.falcon9_rocket, y=15.0)
 
@@ -51,9 +53,12 @@ def main():
         print(f"Time: {time_str}s")
         print(format_telemetry(Falcon_9.get_telemetry()))
         
-        time.sleep(dt)  # Wait before the next iteration
+        if not FAST_MODE:
+            time.sleep(dt)  # Wait before the next iteration
+
+    recorder.record_telemetry(Falcon_9.get_telemetry())
     print("\n")
-    print("SPACE REACHED!!!")
+    print(f"Sim completed in {time_str}")
 
 
 if __name__ == "__main__":
