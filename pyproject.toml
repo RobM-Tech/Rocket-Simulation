@@ -8,7 +8,9 @@ version = "1.1.0"
 description = "Physics-based rocket launch and telemetry simulation"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pytest>=9.1.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rocket_sim"]
