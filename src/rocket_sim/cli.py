@@ -10,7 +10,8 @@ def main():
 
     Falcon_9 = rocket.Rocket(falcon9_config.falcon9_rocket, y=15.0)
 
-    orbit_velocity = 9000  # Escape altitude in meters
+    csv_path = recorder.generate_path()
+    data_step = 0
 
     #Time
     
@@ -35,6 +36,7 @@ def main():
         # Simulate the rocket's motion for one time step
         Falcon_9.update(dt)
         t += dt
+        data_step += 1
         #HH:MM:SS.ss setup
         hh = int(t // 3600)
         mm = int((t % 3600) // 60)
@@ -55,9 +57,10 @@ def main():
         
         if not FAST_MODE:
             time.sleep(dt)  # Wait before the next iteration
-
-    recorder.record_telemetry(Falcon_9.get_telemetry())
+        if data_step % 100 == 0:
+            recorder.record_telemetry(Falcon_9.get_telemetry(), csv_path)
     print("\n")
+    recorder.record_telemetry(Falcon_9.get_telemetry(), csv_path)
     print(f"Sim completed in {time_str}")
 
 
