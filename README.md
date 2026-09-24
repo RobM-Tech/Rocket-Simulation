@@ -1,10 +1,23 @@
 # Rocket Launch & Telemetry Simulation
 
-Physics-based multi-stage rocket simulation in Python.  
+Physics-based multi-stage rocket simulation in Python.
+
 Focuses on Newtonian mechanics, staging, guidance, and telemetry — not graphics.
 
-Models a Falcon 9–class vehicle through ascent to near-orbital conditions.  
+Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
+
 **Full orbital insertion / circularization is not implemented yet.**
+
+**Version 1.2.0** — packaged layout, config-driven vehicle, extracted guidance, console + CSV telemetry, CLI fast mode, and unit tests on guidance.
+
+---
+
+## What this project demonstrates
+
+- Separation of **vehicle data** (config), **guidance laws** (pure functions), and **flight sequencing** (state machine on the rocket)
+- Multi-stage mass/fuel accounting and fairing jettison
+- Testable pitch guidance without running a full ascent
+- Practical operator tooling: live telemetry, CSV export, `--fast` runs
 
 ---
 
@@ -18,32 +31,49 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Live console telemetry
 - CSV telemetry logging (timestamped files under `telemetry_data/`)
 - Fast mode for quicker test runs
+- Unit tests for pitch initiation and stage 1 / stage 2 guidance
 
 ---
 
-## Project Layout
+## Project layout
 
 ```text
 src/rocket_sim/
-├── cli.py              # Entry point / simulation loop
-├── utils.py            # CLI helpers (time string, --fast flag)
-├── config/             # Dataclasses + Falcon 9 vehicle data
-├── models/             # Rocket, Stage
-├── guidance/           # Pitch initiation, stage 1 & 2 guidance
-├── physics/            # Forces and motion helpers
-└── telemetry/          # Console formatter + CSV recorder
+├── cli.py         # Entry point / simulation loop
+├── utils.py       # CLI helpers (time string, --fast flag)
+├── config/        # Dataclasses + Falcon 9 vehicle data
+├── models/        # Rocket, Stage
+├── guidance/      # Pitch initiation, stage 1 & 2 guidance
+├── physics/       # Forces and motion helpers
+└── telemetry/     # Console formatter + CSV recorder
+
+tests/
+└── unit/          # Guidance unit tests
 ```
 
-- Vehicle numbers live in `config/` (especially `config/falcon9_config.py`).
-- Guidance logic lives under `guidance/`. 
-- The rocket state machine orchestrates the flight phases.
+- Vehicle numbers live in `config/` (especially `falcon9_config.py`).
+- Guidance logic lives under `guidance/`.
+- The rocket state machine orchestrates flight phases.
+
+### Design notes
+
+| Concern | Where it lives |
+| :--- | :--- |
+| Masses, thrusts, pitch schedules (degrees) | `config/` + Falcon 9 data module |
+| Pitch programs (pure functions) | `guidance/` |
+| Flight phase sequencing, staging | `models/rocket.py` state machine |
+| Forces / kinematics helpers | `physics/` |
+| Presenting and logging telemetry | `telemetry/` |
+
+- Guidance config values are in degrees; conversion to radians happens inside guidance functions.
+- Runtime state (fuel remaining, current pitch, flags) lives on Rocket / Stage, not in config objects.
 
 ---
 
 ## Requirements
 
-- **Python 3.10+**
-- `uv` recommended (or standard `pip`)
+- Python 3.10+
+- `uv` recommended (or `pip`)
 
 ---
 
@@ -52,73 +82,89 @@ src/rocket_sim/
 ```bash
 git clone https://github.com/RobM-Tech/Rocket-Simulation.git
 cd Rocket-Simulation
-
 uv venv
-source .venv/bin/activate          # On Windows use: .venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 uv pip install -e .
 ```
+
+### Development install (tests)
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+This pulls optional dev dependencies (including `pytest`). Runtime simulation does not require `pytest`.
 
 ---
 
 ## Run
 
-From the project root, with your virtual environment active:
+From the project root, with the virtual environment active:
 
 ```bash
 python -m rocket_sim.cli
 ```
 
-### Fast Mode
-Skips the per-step sleep interval so the simulation finishes in seconds instead of several minutes. Telemetry still prints to the console and data still logs to the CSV file. This is highly useful while developing and testing.
+### Fast mode
+
+Skips per-step sleep so a run finishes in seconds instead of several minutes. Console telemetry and CSV logging still run.
 
 ```bash
 python -m rocket_sim.cli --fast
 ```
 
-*or with uv:*
+or:
 
 ```bash
 uv run -m rocket_sim.cli --fast
 ```
 
-Without the `--fast` flag, the loop sleeps during each step so that the readout mirrors the simulation timestep (dt), making it watchable in roughly real time.
+Without `--fast`, the loop sleeps each step so the readout is watchable in roughly real time.
+
+---
+
+## Tests
+
+```bash
+uv pip install -e ".[dev]"  # if not already installed
+pytest
+```
+
+or:
+
+```bash
+uv run pytest
+```
+
+Unit tests cover pitch initiation and stage 1 / stage 2 guidance (branch selection, rate limiting, throttle bias) without a full mission run.
 
 ---
 
 ## Telemetry CSV
 
-During a simulation run, telemetry data is appended every 100 steps (and once more at the conclusion of the run) to a timestamped file:
+During a run, telemetry is appended every 100 steps (and once at the end) to a timestamped file:
 
 ```text
 telemetry_data/telemetry_YYYYMMDD_HHMMSS.csv
 ```
 
-The directory is created automatically if it is missing. These generated CSV files are ignored by git.
+The directory is created if missing. Generated CSV files are gitignored.
 
 ---
 
 ## Configuration
 
-Edit `src/rocket_sim/config/falcon9_config.py` to tune parameters such as:
-
-- Stage masses, thrust, and burn rate
+Edit `src/rocket_sim/config/falcon9_config.py` to tune:
+- Stage masses, thrust, burn rate
 - Pitch schedules and staging thresholds
-- Payload, fairing, and reference aerodynamic areas
-
-*Note: Guidance angles in the configuration file are set in degrees; conversion to radians happens automatically inside the guidance functions.*
+- Payload / fairing / reference area
 
 ---
 
-## Current Limits
+## Current limits
 
-- Reaches roughly orbital horizontal speed at high altitude, but does not model a stable circular orbit.
-- No orbital insertion or coast-orbit physics yet.
-- No automated test suite yet.
+- Reaches roughly orbital horizontal speed at high altitude, but does not model a circular orbit
+- No orbital insertion or closed-orbit propagation yet
+- Rocket still concentrates sequencing, throttling, and telemetry collection (incremental cleanup ongoing)
 
 ---
-
-## Status
-
-The package layout, config-driven vehicle modules, extracted guidance logic, console + CSV telemetry formatting, and CLI `--fast` mode are all successfully in place.
-
-**Next focus:** Writing a comprehensive automated unit test suite (`pytest`) covering the guidance formulas and core vehicle models.
