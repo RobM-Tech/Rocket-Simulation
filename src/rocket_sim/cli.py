@@ -5,6 +5,7 @@ from rocket_sim.config.sim_config import SimConfig
 from rocket_sim.telemetry.console import format_telemetry
 from rocket_sim.telemetry.exporters import recorder
 from rocket_sim.utils import get_time_str, fast_mode_argparse
+from scripts.plot_run import plot_csv_data
 
 def main():
     # Runtime settings
@@ -42,6 +43,7 @@ def main():
     print("\n")
     recorder.record_telemetry(Falcon_9.get_telemetry(), csv_path)
     print(f"Sim completed in {time_str}")
+    plot_csv_data()
 
 
 if __name__ == "__main__":
