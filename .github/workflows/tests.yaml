@@ -1,0 +1,17 @@
+name: Sim Testing
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          pip install uv
+          uv venv
+          uv pip install -e ".[dev]"
+          uv run -m pytest
