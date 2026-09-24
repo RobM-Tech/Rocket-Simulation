@@ -164,6 +164,7 @@ After a run, CSVs land in `telemetry_data/`. You can generate a quick altitude h
 
 ```bash
 python scripts/plot_run.py
+```
 
 Altitude vs mission time from a logged CSV run:
 
