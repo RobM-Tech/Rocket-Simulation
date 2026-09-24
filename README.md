@@ -166,9 +166,12 @@ After a run, CSVs land in `telemetry_data/`. You can generate a quick altitude h
 python scripts/plot_run.py
 ```
 
-Altitude vs mission time from a logged CSV run:
+Flight data from a logged CSV run:
+-Climb profile
+-Energy build-up
+-Trajectory shape
 
-![Altitude vs mission time](docs/altitude_vs_time.png)
+![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
 
 ## Configuration
 

@@ -21,17 +21,35 @@ def plot_csv_data():
     
     df = pd.read_csv(file)
 
-    x_data = df['t']
+    time_data = df['t']
+    x_data = df["x"]
     y_data = df['y']
+    speed_data = df["v_total"]
 
-    plt.figure(figsize=(10, 6))
+    fig, axes = plt.subplots(3, 1, figsize=(10, 12))
 
-    plt.plot(x_data, y_data)
+    axes[0].plot(time_data, y_data, linewidth=2)
 
-    plt.xlabel("Mission time (s)", fontweight="bold")
-    plt.ylabel("Altitude (m)", fontweight="bold")
-    plt.title(f"Flight Data for: {file.name}")
-    plt.grid(True)
+    axes[0].set_xlabel("Mission time (s)", fontweight="bold")
+    axes[0].set_ylabel("Altitude (m)", fontweight="bold")
+    axes[0].set_title(f"Climb profile", fontweight="bold")
+    axes[0].grid(True)
+
+    axes[1].plot(time_data, speed_data, linewidth=2)
+
+    axes[1].set_xlabel("Mission time (s)", fontweight="bold")
+    axes[1].set_ylabel("Speed (v_total)", fontweight="bold")
+    axes[1].set_title(f"Energy build-up", fontweight="bold")
+    axes[1].grid(True)
+
+    axes[2].plot(x_data, y_data, linewidth=2)
+
+    axes[2].set_xlabel("Downrange (m)", fontweight="bold")
+    axes[2].set_ylabel("Altitude (m)", fontweight="bold")
+    axes[2].set_title(f"Trajectory shape", fontweight="bold")
+    axes[2].grid(True)
+
+    plt.tight_layout()
 
     out = Path(__file__).resolve().parent.parent / "docs" / f"flight_data_{file.stem}.png"
     out.parent.mkdir(parents=True, exist_ok=True)
