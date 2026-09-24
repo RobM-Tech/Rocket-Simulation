@@ -1,4 +1,5 @@
 # Rocket Launch & Telemetry Simulation
+![CI](https://github.com/RobM-Tech/Rocket-Simulation/actions/workflows/tests.yaml/badge.svg)
 
 Physics-based multi-stage rocket simulation in Python.
 
@@ -31,7 +32,9 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Live console telemetry
 - CSV telemetry logging (timestamped files under `telemetry_data/`)
 - Fast mode for quicker test runs
-- Unit tests for pitch initiation and stage 1 / stage 2 guidance
+- Unit tests for pitch initiation
+- Unit tests for guidance and stage mass/fuel behavior
+- CI via GitHub Actions (pytest on push to `main`)
 
 ---
 
@@ -137,6 +140,8 @@ uv run pytest
 ```
 
 Unit tests cover pitch initiation and stage 1 / stage 2 guidance (branch selection, rate limiting, throttle bias) without a full mission run.
+
+The same suite runs in CI on every push to `main` (see the **Actions** tab).
 
 ---
 
