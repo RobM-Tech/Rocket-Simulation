@@ -14,8 +14,9 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rocket_sim"]
-
 [project.optional-dependencies]
 dev = [
+    "matplotlib>=3.10.9",
     "pytest>=9.1.1",
+    "pandas>=2.3.3",
 ]

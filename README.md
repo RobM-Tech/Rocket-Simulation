@@ -35,6 +35,7 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Unit tests for pitch initiation
 - Unit tests for guidance and stage mass/fuel behavior
 - CI via GitHub Actions (pytest on push to `main`)
+- Script to plot altitude vs time from the latest telemetry CSV
 
 ---
 
@@ -156,6 +157,17 @@ telemetry_data/telemetry_YYYYMMDD_HHMMSS.csv
 The directory is created if missing. Generated CSV files are gitignored.
 
 ---
+
+## Sample output
+
+After a run, CSVs land in `telemetry_data/`. You can generate a quick altitude history plot:
+
+```bash
+python scripts/plot_run.py
+
+Altitude vs mission time from a logged CSV run:
+
+![Altitude vs mission time](docs/altitude_vs_time.png)
 
 ## Configuration
 
