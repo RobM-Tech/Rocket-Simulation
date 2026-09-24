@@ -1,6 +1,6 @@
 import pytest
 import math
-from dataclasses import dataclass
+
 from rocket_sim.guidance.pitch_init import initialize_pitch
 from rocket_sim.config.guidance_config import PitchInitiation
 

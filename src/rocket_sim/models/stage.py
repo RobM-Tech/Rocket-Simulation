@@ -47,12 +47,15 @@ class Stage:
 
             fuel_consumed = self.current_burn_rate * dt
             self.current_fuel_mass -= fuel_consumed
+            
 
             if self.current_fuel_mass <= 0:
                 self.current_fuel_mass = 0
                 self.throttle = 0
+                self.state = stage_state.BURNED_OUT
+                
                     
-
+        
     
     #HELPERS
 
