@@ -30,16 +30,14 @@ s1_guidance = StageOneGuidance(s1_throttle_rate_limit  = 0.25,
                                s1_pitch_adjust_limit   = 0.5,    # degree fraction per second
                                s1_max_q_throttle       = 0.70,
 
-                               s1_ramp_dur           = 165,      # s
+                               s1_ramp_dur           = 155,      # s
                                s1_ramp_delay         = 10,       # s
-                               s1_min_vel            = 2350,     # m/s
-                               s1_sep_min_alt        = 65_000,   # m
-                               s1_nominal_burn_time  = 160,      # s
+                               s1_min_vel            = 2550,     # m/s
+                               s1_sep_min_alt        = 80_000,   # m
+                               s1_nominal_burn_time  = 170,      # s
                                s1_start_pitch        = 8.0,      # degree
-                               s1_end_pitch          = 66.0,     # degree
+                               s1_end_pitch          = 60.0,     # degree
                                s1_max_pitch_bias_deg = 5.0,      # degree
-                               s1_throttle_dwn_time  = 40,       # s
-                               s1_throttle_up_time   = 75,       # s
                                s1_MECO_delay         = 3.0       # s       
                               )
 

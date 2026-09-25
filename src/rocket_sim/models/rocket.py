@@ -210,10 +210,10 @@ class Rocket:
 
             case rocket_state.ASCENT_BURN:
                 
-                if self.t > self.s1_guidance.s1_throttle_dwn_time:
+                if self.t > self.s1_fp.max_q_start_time:
                     self.current_stage.state = stage_state.THROTTLE_DOWN
 
-                if self.t > self.s1_guidance.s1_throttle_up_time:
+                if self.t > self.s1_fp.max_q_end_time:
                     self.current_stage.state = stage_state.IGNITED
 
                 # Stage 1 guidance

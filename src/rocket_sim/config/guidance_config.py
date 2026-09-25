@@ -24,9 +24,7 @@ class StageOneGuidance:
     s1_nominal_burn_time: float 
     s1_start_pitch: float       
     s1_end_pitch: float
-    s1_max_pitch_bias_deg: float         
-    s1_throttle_dwn_time: float 
-    s1_throttle_up_time: float
+    s1_max_pitch_bias_deg: float
     s1_MECO_delay: float
 
 @dataclass

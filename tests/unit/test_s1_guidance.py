@@ -19,8 +19,6 @@ def config():
                             s1_start_pitch        = 8.0,      # degree
                             s1_end_pitch          = 80.0,     # degree
                             s1_max_pitch_bias_deg = 5.0,      # degree
-                            s1_throttle_dwn_time  = 50,       # s
-                            s1_throttle_up_time   = 85,       # s
                             s1_MECO_delay         = 3.0       # s       
                             )
 
