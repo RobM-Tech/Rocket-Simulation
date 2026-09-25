@@ -27,6 +27,7 @@ class Rocket:
         self.stage_config   = rocket_config.stages
         self.pitch_init     = rocket_config.pitch_init
         self.s1_guidance    = rocket_config.s1_guidance
+        self.s1_fp          = rocket_config.s1_fp
         self.s2_guidance    = rocket_config.s2_guidance
         self.state          = rocket_state.IDLE
         self.stages         = []
@@ -120,7 +121,16 @@ class Rocket:
         T_x, T_y = physics.calc_thrust(self.applied_thrust, self.current_pitch)
 
         #Compute accelerations
-        self.ay, self.ax = physics.acceleration(self, T_y, T_x)
+        self.ay, self.ax = physics.acceleration(self.total_mass,
+                                                self.y,
+                                                self.x,
+                                                self.vy,
+                                                self.vx,
+                                                self.rkt_config.ref_area,
+                                                self.total_velocity,
+                                                T_y,
+                                                T_x
+                                                )
         
         #Update radial velocity (after acceleration update)
         self.v_r = physics.radial_velocity(self.y, self.x, self.vx, self.vy)
@@ -140,7 +150,16 @@ class Rocket:
         # recompute acceleration at new position
         T_y = self.applied_thrust * math.cos(self.current_pitch)   # vertical
         T_x = self.applied_thrust * math.sin(self.current_pitch)   # horizontal
-        self.ay, self.ax = physics.acceleration(self, T_y, T_x)
+        self.ay, self.ax = physics.acceleration(self.total_mass,
+                                                self.y,
+                                                self.x,
+                                                self.vy,
+                                                self.vx,
+                                                self.rkt_config.ref_area,
+                                                self.total_velocity,
+                                                T_y,
+                                                T_x
+                                                )
 
         # velocity Verlet step 2
         self.vx = vx_half + 0.5 * self.ax * dt
@@ -152,7 +171,7 @@ class Rocket:
         self.total_accel = physics.total_accel(self.ay, self.ax)
 
         # update dynamic pressure
-        self.current_Q   = physics.dynamic_pressure(vy=self.vy, y=self.y) #Pa
+        self.current_Q   = physics.dynamic_pressure(self.total_velocity, self.y) #Pa
         if self.current_Q > self.max_Q:
             self.max_Q = self.current_Q
 
@@ -301,27 +320,44 @@ class Rocket:
 
         goal_fraction = self.target_thrust_fraction
         
-        #Manage thrust output for first 15km then full burn
+        # =====================================================================
+        # DYNAMIC AERODYNAMIC THROTTLE-DOWN (Max-Q Protection)
+        # =====================================================================
+        profile = self.s1_fp
+        
+
+        # Stage exsists and not in a off state
+        if self.current_stage is None:
+            return 0.0
+        if (self.is_orbit_coast()
+            or self.current_stage.state in (stage_state.SECO, stage_state.MECO)
+            ):
+            return 0
+
+        goal_fraction = self.target_thrust_fraction
 
         if self.current_stage:
-            if 0 < self.t < 35 and self.y < 2500:
-                if self.ay > 2.1:
-                    goal_fraction = 0.80
-                                        
-            elif 35 < self.t < 55 and self.y < 5000:
-                if self.ay > 3.3:
-                    goal_fraction = 0.75
-                    
-            elif 55 < self.t < 80 and self.y < 10000:
-                goal_fraction = self.s1_guidance.s1_max_q_throttle
-                if self.ay > 15:
-                    goal_fraction = self.s1_guidance.s1_max_q_throttle
+            # Phase 1: Pad Clearance Gate
+            if 0 < self.t < profile.pad_clear_duration and self.y < profile.pad_clear_alt_ceiling:
+                if self.ay > profile.pad_clear_accel_trigger:
+                    goal_fraction = profile.pad_clear_throttle
             
-            elif self.t > 75 and self.current_stage.state == stage_state.THROTTLE_DOWN:
+            # Phase 2: Transonic Protective Window
+            elif profile.transonic_duration_start < self.t < profile.transonic_duration_end and self.y < profile.transonic_alt_ceiling:
+                if self.ay > profile.transonic_accel_trigger:
+                    goal_fraction = profile.transonic_throttle
+            
+            # Phase 3: Max-Q Structural Throttling Window
+            # Fixed: This will now catch your 35s to 65s window cleanly!
+            elif profile.max_q_start_time < self.t < profile.max_q_end_time and self.y < profile.max_q_alt_ceiling:
+                goal_fraction = self.s1_guidance.s1_max_q_throttle
+
+            # Phase 4: Extended Post-Max-Q Throttle Hold
+            elif self.t > profile.max_q_end_time and self.current_stage.state == stage_state.THROTTLE_DOWN:
                 goal_fraction = self.s1_guidance.s1_max_q_throttle
                     
             else:           
-                goal_fraction = self.target_thrust_fraction  #max thrust
+                goal_fraction = self.target_thrust_fraction  # Max thrust
             
             #Manage G limit and total velocity throttling
             if self.is_ascent_burn:

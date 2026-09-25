@@ -9,7 +9,8 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 
 **Full orbital insertion / circularization is not implemented yet.**
 
-**Version 1.2.0** — packaged layout, config-driven vehicle, extracted guidance, console + CSV telemetry, CLI fast mode, and unit tests on guidance.
+**Version 1.3.0** — packaged layout, configuration-driven vehicle parameters, extracted flight profile boundaries, console + CSV telemetry, CLI fast mode, and stateless kinematics unit testing.
+
 
 ---
 
@@ -19,6 +20,8 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Multi-stage mass/fuel accounting and fairing jettison
 - Testable pitch guidance without running a full ascent
 - Practical operator tooling: live telemetry, CSV export, `--fast` runs
+- Stateless Physics & Kinematics Engine
+
 
 ---
 
@@ -38,6 +41,10 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Script to plot altitude vs time from the latest telemetry CSV
 - CLI run modes: `--fast` and `--until MECO|SECO|FULL` for partial or full flights
 - Telemetry CSV and plots organized by run phase (`telemetry_data/data_MECO`, `docs/plot_MECO`, etc.)
+- Aerodynamic dynamic pressure ($Q$) tracking with real-time Max-Q peak structural load monitoring.
+- Clamped barometric altitudinal scaling to safely prevent mathematical domain errors at deep space boundaries ($150\text{ km}+$).
+- Transonic wave-drag coefficient ($C_d$) spikes approximating the breaking of the sound barrier (Mach $0.8$ to Mach $1.2$).
+
 
 ---
 
@@ -48,10 +55,11 @@ src/rocket_sim/
 ├── cli.py         # Entry point / simulation loop
 ├── utils.py       # CLI helpers (time string, --fast flag)
 ├── config/        # Dataclasses + Falcon 9 vehicle data
-├── models/        # Rocket, Stage
+├── models/        # Rocket, Stage models & state machine
 ├── guidance/      # Pitch initiation, stage 1 & 2 guidance
-├── physics/       # Forces and motion helpers
-└── telemetry/     # Console formatter + CSV recorder
+├── physics/       # Stateless forces and kinematics engine
+└── telemetry/     # Console telemetry formatter + CSV recorder
+
 
 tests/
 └── unit/          # Guidance unit tests
@@ -137,7 +145,7 @@ python -m rocket_sim.cli --fast --until SECO
 ```
 | Value | Behavior |
 | :--- | :--- |
-| **FULL** | Full mission (default) |
+| **FULL** | runs until orbit coast. There is no closed-orbit propagation yet, so the simulation ends there by design. |
 | **MECO** | Stop at main-engine cutoff / stage 1 MECO |
 | **SECO** | Stop at second-engine cutoff |
 ---
@@ -191,8 +199,7 @@ Flight data from a logged CSV run:
 -Energy build-up
 -Trajectory shape
 
-Sample through MECO
-Speed shows a softer segment mid-ascent consistent with throttle-down near Max-Q.
+ **Flight Analysis Profile:** The telemetry plots distinctly show a flattening velocity curve mid-ascent (between 60s and 80s). This accurately reflects the vehicle throttling down to mitigate structural stress while passing through maximum aerodynamic pressure (Max-Q).
 ![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
 
 ## Configuration
@@ -208,6 +215,6 @@ Edit `src/rocket_sim/config/falcon9_config.py` to tune:
 
 - Reaches roughly orbital horizontal speed at high altitude, but does not model a circular orbit
 - No orbital insertion or closed-orbit propagation yet
-- Rocket still concentrates sequencing, throttling, and telemetry collection (incremental cleanup ongoing)
+- Throttling schedules are completely abstracted out of core execution files into configuration dataclass components. Telemetry loop decoupling remains ongoing.
 
 ---

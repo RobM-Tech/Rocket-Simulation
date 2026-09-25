@@ -11,7 +11,6 @@ class PitchInitiation:
 
 @dataclass
 class StageOneGuidance:
-
     # ────────────────────────────────────────────────
     #  Tuning parameters — Stage 1
     # ────────────────────────────────────────────────
@@ -30,7 +29,29 @@ class StageOneGuidance:
     s1_throttle_up_time: float
     s1_MECO_delay: float
 
+@dataclass
+class StageOneFlightProfile:
+    #────────────────────────────────────────────────
+    # Flight profile throttling
+    #────────────────────────────────────────────────
+    # Early Ascent / Pad Clearance Phase
+    pad_clear_duration: float       # seconds
+    pad_clear_alt_ceiling: float    # meters
+    pad_clear_accel_trigger: float  # m/s^2
+    pad_clear_throttle: float
 
+    # Intermediate Pitch / Transonic Phase
+    transonic_duration_start: float # seconds
+    transonic_duration_end: float   # seconds
+    transonic_alt_ceiling: float    # meters
+    transonic_accel_trigger: float  # m/s^2
+    transonic_throttle: float
+
+    # Max-Q Structural Protection Phase
+    # UPDATED: Shifted earlier to match your new high-fidelity physics timeline!
+    max_q_start_time: float         # seconds
+    max_q_end_time: float           # seconds
+    max_q_alt_ceiling: float        # meters
 
 
 @dataclass

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from rocket_sim.config.stage_config import StageConfig
-from rocket_sim.config.guidance_config import StageOneGuidance, StageTwoGuidance, PitchInitiation
+from rocket_sim.config.guidance_config import StageOneGuidance, StageTwoGuidance, PitchInitiation, StageOneFlightProfile
 
 @dataclass
 class RocketConfig:
@@ -16,6 +16,7 @@ class RocketConfig:
     pitch_init: PitchInitiation
 
     s1_guidance: StageOneGuidance
+    s1_fp: StageOneFlightProfile
     s2_guidance: StageTwoGuidance
 
 
