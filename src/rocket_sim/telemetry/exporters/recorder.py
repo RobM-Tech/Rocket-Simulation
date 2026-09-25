@@ -4,8 +4,10 @@ from pathlib import Path
 
 
 
-def generate_path():
-    save_dir = Path("telemetry_data") 
+
+def generate_path(tag):
+
+    save_dir = Path(__file__).resolve().parents[4] / "telemetry_data" / f"data{tag}"
     save_dir.mkdir(parents=True, exist_ok=True)
     time_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 

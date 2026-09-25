@@ -36,7 +36,8 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Unit tests for guidance and stage mass/fuel behavior
 - CI via GitHub Actions (pytest on push to `main`)
 - Script to plot altitude vs time from the latest telemetry CSV
--- CLI run modes: `--fast` and `--until MECO|SECO|FULL` for partial or full flights
+- CLI run modes: `--fast` and `--until MECO|SECO|FULL` for partial or full flights
+- Telemetry CSV and plots organized by run phase (`telemetry_data/data_MECO`, `docs/plot_MECO`, etc.)
 
 ---
 
@@ -169,6 +170,13 @@ telemetry_data/telemetry_YYYYMMDD_HHMMSS.csv
 ```
 
 The directory is created if missing. Generated CSV files are gitignored.
+CSVs are written under a phase folder based on `--until`:
+
+```text
+telemetry_data/data_MECO/
+telemetry_data/data_SECO/
+telemetry_data/data_FULL/
+```
 
 ---
 
@@ -179,6 +187,8 @@ After a run, CSVs land in `telemetry_data/`. You can generate a quick altitude h
 ```bash
 python scripts/plot_run.py
 ```
+Plots from a run are saved under `docs/plot_MECO` (or `plot_SECO` / `plot_FULL`) to match the phase flag.
+Output folders for logs and plots follow the same phase tag so MECO/SECO/FULL runs stay separated.
 
 Flight data from a logged CSV run:
 -Climb profile

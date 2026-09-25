@@ -26,6 +26,7 @@ def run_mode():
 
     parser.add_argument('--until',
                     choices=["MECO", "SECO", "FULL"],
+                    type=str.upper,
                     default="FULL",
                     help='Sets stop point for sim, default is full run.')
 
@@ -45,3 +46,16 @@ def should_stop(stop_at, rkt):
         return True
     
     return False
+
+
+def phase_tag(stop_at):
+    if stop_at == "MECO":
+        tag = "_MECO"
+    elif stop_at == "SECO":
+        tag = "_SECO"
+    elif stop_at == "FULL":
+        tag = "_FULL"
+    else:
+        tag = "_FULL"
+
+    return tag
