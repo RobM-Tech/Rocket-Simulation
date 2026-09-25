@@ -3,9 +3,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
 
-def get_newest_csv_data():
+def get_newest_csv_data(tag):
+
+
     curr_dir = Path(__file__).resolve().parent
-    telemetry_dir = curr_dir.parent / "telemetry_data"
+    telemetry_dir = curr_dir.parent / "telemetry_data" / f"data{tag}"
 
     csv_files = list(telemetry_dir.glob("*.csv"))
 
@@ -16,8 +18,9 @@ def get_newest_csv_data():
 
     return newest_file
 
-def plot_csv_data():
-    file = get_newest_csv_data()
+def plot_csv_data(tag):
+
+    file = get_newest_csv_data(tag)
     
     df = pd.read_csv(file)
 
@@ -51,7 +54,7 @@ def plot_csv_data():
 
     plt.tight_layout()
 
-    out = Path(__file__).resolve().parent.parent / "docs" / f"flight_data_{file.stem}.png"
+    out = Path(__file__).resolve().parent.parent / "docs" / f"plot{tag}" / f"flight_data_{file.stem}.png"
     out.parent.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(out, dpi=150, bbox_inches="tight")

@@ -165,10 +165,6 @@ The same suite runs in CI on every push to `main` (see the **Actions** tab).
 
 During a run, telemetry is appended every 100 steps (and once at the end) to a timestamped file:
 
-```text
-telemetry_data/telemetry_YYYYMMDD_HHMMSS.csv
-```
-
 The directory is created if missing. Generated CSV files are gitignored.
 CSVs are written under a phase folder based on `--until`:
 

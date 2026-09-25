@@ -136,10 +136,6 @@ class Rocket:
         #Update positions
         self.x += vx_half * dt
         self.y += vy_half * dt
-
-        if self.y < 0:
-            print("CRASH")
-            return
         
         # recompute acceleration at new position
         T_y = self.applied_thrust * math.cos(self.current_pitch)   # vertical
