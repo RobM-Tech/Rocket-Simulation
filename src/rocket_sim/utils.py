@@ -1,5 +1,6 @@
 import argparse
 import time
+from rocket_sim.models.stage import stage_state
 
 def get_time_str(t):
     #HH:MM:SS.ss setup
@@ -16,13 +17,31 @@ def get_time_str(t):
     return time_str
 
 
-def fast_mode_argparse(Fast_mode: bool):
+def run_mode():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--fast', 
                         action='store_true', 
                         help='Enable fast CLI mode for faster overhead runtime')
 
+    parser.add_argument('--until',
+                    choices=["MECO", "SECO", "FULL"],
+                    default="FULL",
+                    help='Sets stop point for sim, default is full run.')
+
     args = parser.parse_args()
 
-    return args.fast
+    return args.fast, args.until
+
+
+def should_stop(stop_at, rkt):
+    if stop_at == "FULL":
+        return False
+    
+    if stop_at == "MECO" and rkt.current_stage.state == stage_state.MECO:
+        return True
+    
+    if stop_at == "SECO" and rkt.current_stage.state == stage_state.SECO:
+        return True
+    
+    return False

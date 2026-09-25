@@ -36,6 +36,7 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Unit tests for guidance and stage mass/fuel behavior
 - CI via GitHub Actions (pytest on push to `main`)
 - Script to plot altitude vs time from the latest telemetry CSV
+-- CLI run modes: `--fast` and `--until MECO|SECO|FULL` for partial or full flights
 
 ---
 
@@ -125,6 +126,19 @@ uv run -m rocket_sim.cli --fast
 
 Without `--fast`, the loop sleeps each step so the readout is watchable in roughly real time.
 
+### Stop at a phase
+
+End the run at a defined flight phase (useful for debugging and shorter CSVs):
+
+```bash
+python -m rocket_sim.cli --until MECO
+python -m rocket_sim.cli --fast --until SECO
+```
+| Value | Behavior |
+| :--- | :--- |
+| **FULL** | Full mission (default) |
+| **MECO** | Stop at main-engine cutoff / stage 1 MECO |
+| **SECO** | Stop at second-engine cutoff |
 ---
 
 ## Tests
@@ -171,6 +185,8 @@ Flight data from a logged CSV run:
 -Energy build-up
 -Trajectory shape
 
+Sample through MECO
+Speed shows a softer segment mid-ascent consistent with throttle-down near Max-Q.
 ![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
 
 ## Configuration

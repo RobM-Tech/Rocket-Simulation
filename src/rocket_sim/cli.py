@@ -4,13 +4,12 @@ from rocket_sim.config import falcon9_config
 from rocket_sim.config.sim_config import SimConfig
 from rocket_sim.telemetry.console import format_telemetry
 from rocket_sim.telemetry.exporters import recorder
-from rocket_sim.utils import get_time_str, fast_mode_argparse
+from rocket_sim.utils import get_time_str, run_mode, should_stop
 from scripts.plot_run import plot_csv_data
 
 def main():
     # Runtime settings
-    FAST_MODE = False
-    FAST_MODE = fast_mode_argparse(FAST_MODE)
+    fast_mode, stop_at = run_mode()
     csv_path = recorder.generate_path()
     data_step = 0
 
@@ -26,6 +25,9 @@ def main():
 
         # Simulate the rocket's motion for one time step
         Falcon_9.update(SimConfig.dt)
+        if should_stop(stop_at, Falcon_9):
+            Falcon_9.sim_running = False
+
         t += SimConfig.dt
         data_step += 1
         time_str = get_time_str(t)
@@ -35,7 +37,7 @@ def main():
         print(f"Time: {time_str}s")
         print(format_telemetry(Falcon_9.get_telemetry()))
         
-        if not FAST_MODE:
+        if not fast_mode:
             time.sleep(SimConfig.dt)  # Wait before the next iteration
         if data_step % 100 == 0:
             recorder.record_telemetry(Falcon_9.get_telemetry(), csv_path)

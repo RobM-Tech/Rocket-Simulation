@@ -111,25 +111,6 @@ class Rocket:
         self.set_rocket_state(dt)
         self.current_stage.update(dt)
 
-        # ────────────────────────────────────────────────────────────────────────────
-        # Debug exit condition block, change to focus stop points to check telemetry
-        # ────────────────────────────────────────────────────────────────────────────
-        
-        if (
-            self.state == rocket_state.STAGE1_SEPARATION
-            or self.current_stage.state == stage_state.MECO
-            or self.current_stage.state == stage_state.BURNED_OUT
-            #or self.t >= 300
-            #or self.y >= 15000
-        ):
-            self.sim_running = False
-        '''elif self.state == rocket_state.STAGE2_ASCENT:
-            if self.vy <= 0:
-                self.sim_running = False
-        elif self.is_stage2_ascent():
-            if self.vy <= 0:
-                self.sim_running = False'''
-        
         
         #Compute thrust based on current pitch
 
@@ -292,7 +273,7 @@ class Rocket:
 
             case rocket_state.ORBIT_COAST:
                 
-                pass
+                self.sim_running = False
 
             case _:
                 pass
