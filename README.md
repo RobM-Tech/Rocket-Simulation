@@ -24,8 +24,10 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 
 
 ---
-
-## Features
+<details>
+    <summary>
+    <h3><b>Features</b></h3>
+    </summary>
 
 - Multi-stage vehicle with per-stage fuel and mass
 - State-machine flight phases (launch → pitch kick → ascent → staging → stage 2 → coast)
@@ -45,10 +47,12 @@ Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 - Clamped barometric altitudinal scaling to safely prevent mathematical domain errors at deep space boundaries ($150\text{ km}+$).
 - Transonic wave-drag coefficient ($C_d$) spikes approximating the breaking of the sound barrier (Mach $0.8$ to Mach $1.2$).
 
-
+</details>
 ---
-
-## Project layout
+<details>
+    <summary>
+    <h3><b>Project layout</b></h3>
+    </summary>
 
 ```text
 src/rocket_sim/
@@ -82,6 +86,7 @@ tests/
 - Guidance config values are in degrees; conversion to radians happens inside guidance functions.
 - Runtime state (fuel remaining, current pitch, flags) lives on Rocket / Stage, not in config objects.
 
+</details>
 ---
 
 ## Requirements
@@ -90,8 +95,10 @@ tests/
 - `uv` recommended (or `pip`)
 
 ---
-
-## Setup
+<details>
+    <summary>
+    <h3><b>Setup and Run</b></h3>
+    </summary>
 
 ```bash
 git clone https://github.com/RobM-Tech/Rocket-Simulation.git
@@ -148,6 +155,7 @@ python -m rocket_sim.cli --fast --until SECO
 | **FULL** | runs until orbit coast. There is no closed-orbit propagation yet, so the simulation ends there by design. |
 | **MECO** | Stop at main-engine cutoff / stage 1 MECO |
 | **SECO** | Stop at second-engine cutoff |
+
 ---
 
 ## Tests
@@ -167,9 +175,12 @@ Unit tests cover pitch initiation and stage 1 / stage 2 guidance (branch selecti
 
 The same suite runs in CI on every push to `main` (see the **Actions** tab).
 
+</details>
 ---
-
-## Telemetry CSV
+<details>
+    <summary>
+    <h3><b>Telemetry CSV</b></h3>
+    </summary>
 
 During a run, telemetry is appended every 100 steps (and once at the end) to a timestamped file:
 
@@ -200,7 +211,16 @@ Flight data from a logged CSV run:
 -Trajectory shape
 
  **Flight Analysis Profile:** The telemetry plots distinctly show a flattening velocity curve mid-ascent (between 60s and 80s). This accurately reflects the vehicle throttling down to mitigate structural stress while passing through maximum aerodynamic pressure (Max-Q).
-![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
+    <details style="margin-left: 20px;">
+        <summary>
+        <b>Flight Analysis Profile:</b>
+        </summary>
+        <br>
+        ![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
+    </details>
+
+</details>
+---
 
 ## Configuration
 
