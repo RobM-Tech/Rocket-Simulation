@@ -1,191 +1,119 @@
 # Rocket Launch & Telemetry Simulation
 ![CI](https://github.com/RobM-Tech/Rocket-Simulation/actions/workflows/tests.yaml/badge.svg)
 
-Physics-based multi-stage rocket simulation in Python.
+A physics-based, multi-stage rocket simulation in Python. This project focuses on Newtonian mechanics, staging, guidance, and telemetry rather than graphic visualizations. It models a Falcon 9–class vehicle through ascent to near-orbital conditions.
 
-Focuses on Newtonian mechanics, staging, guidance, and telemetry — not graphics.
+**Important Note:** Full orbital insertion and closed-orbit circularization propagation are not implemented yet.
 
-Models a Falcon 9–class vehicle through ascent to near-orbital conditions.
+**Version 1.3.0** — Packaged layout, configuration-driven vehicle parameters, extracted flight profile boundaries, console and CSV telemetry, CLI fast mode, and stateless kinematics unit testing.
 
-**Full orbital insertion / circularization is not implemented yet.**
+## Core Architectural Concepts
 
-**Version 1.3.0** — packaged layout, configuration-driven vehicle parameters, extracted flight profile boundaries, console + CSV telemetry, CLI fast mode, and stateless kinematics unit testing.
-
-
----
-
-## What this project demonstrates
-
-- Separation of **vehicle data** (config), **guidance laws** (pure functions), and **flight sequencing** (state machine on the rocket)
-- Multi-stage mass/fuel accounting and fairing jettison
-- Testable pitch guidance without running a full ascent
-- Practical operator tooling: live telemetry, CSV export, `--fast` runs
-- Stateless Physics & Kinematics Engine
-
-
----
-<details>
-    <summary>
-    <h3><b>Features</b></h3>
-    </summary>
-
-- Multi-stage vehicle with per-stage fuel and mass
-- State-machine flight phases (launch → pitch kick → ascent → staging → stage 2 → coast)
-- Configurable guidance (pitch initiation, stage 1 & 2 pitch programs)
-- Thrust, gravity, and atmospheric drag
-- Fairing jettison
-- Live console telemetry
-- CSV telemetry logging (timestamped files under `telemetry_data/`)
-- Fast mode for quicker test runs
-- Unit tests for pitch initiation
-- Unit tests for guidance and stage mass/fuel behavior
-- CI via GitHub Actions (pytest on push to `main`)
-- Script to plot altitude vs time from the latest telemetry CSV
-- CLI run modes: `--fast` and `--until MECO|SECO|FULL` for partial or full flights
-- Telemetry CSV and plots organized by run phase (`telemetry_data/data_MECO`, `docs/plot_MECO`, etc.)
-- Aerodynamic dynamic pressure ($Q$) tracking with real-time Max-Q peak structural load monitoring.
-- Clamped barometric altitudinal scaling to safely prevent mathematical domain errors at deep space boundaries ($150\text{ km}+$).
-- Transonic wave-drag coefficient ($C_d$) spikes approximating the breaking of the sound barrier (Mach $0.8$ to Mach $1.2$).
-
-</details>
----
-<details>
-    <summary>
-    <h3><b>Project layout</b></h3>
-    </summary>
-
-```text
-src/rocket_sim/
-├── cli.py         # Entry point / simulation loop
-├── utils.py       # CLI helpers (time string, --fast flag)
-├── config/        # Dataclasses + Falcon 9 vehicle data
-├── models/        # Rocket, Stage models & state machine
-├── guidance/      # Pitch initiation, stage 1 & 2 guidance
-├── physics/       # Stateless forces and kinematics engine
-└── telemetry/     # Console telemetry formatter + CSV recorder
-
-
-tests/
-└── unit/          # Guidance unit tests
-```
-
-- Vehicle numbers live in `config/` (especially `falcon9_config.py`).
-- Guidance logic lives under `guidance/`.
-- The rocket state machine orchestrates flight phases.
-
-### Design notes
-
-| Concern | Where it lives |
-| :--- | :--- |
-| Masses, thrusts, pitch schedules (degrees) | `config/` + Falcon 9 data module |
-| Pitch programs (pure functions) | `guidance/` |
-| Flight phase sequencing, staging | `models/rocket.py` state machine |
-| Forces / kinematics helpers | `physics/` |
-| Presenting and logging telemetry | `telemetry/` |
-
-- Guidance config values are in degrees; conversion to radians happens inside guidance functions.
-- Runtime state (fuel remaining, current pitch, flags) lives on Rocket / Stage, not in config objects.
-
-</details>
----
+* **Separation of Concerns:** Distinct separation of vehicle data configurations, pure-function guidance laws, and rocket state-machine flight sequencing.
+* **Aerodynamic Systems:** Tracks dynamic pressure (Q) for real-time Max-Q peak structural load monitoring and models transonic wave-drag coefficient (\(C_d\)) spikes between Mach 0.8 and Mach 1.2.
+* **Deep Space Boundaries:** Implements clamped barometric altitudinal scaling to prevent mathematical domain errors at high boundaries exceeding 150 km.
 
 ## Requirements
 
-- Python 3.10+
-- `uv` recommended (or `pip`)
+* Python 3.10+
+* uv package manager (recommended) or pip
 
----
-<details>
-    <summary>
-    <h3><b>Setup and Run</b></h3>
-    </summary>
+## Installation and Setup
+
+Clone the repository and configure the virtual environment:
 
 ```bash
 git clone https://github.com/RobM-Tech/Rocket-Simulation.git
 cd Rocket-Simulation
 uv venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-uv pip install -e .
-```
-
-### Development install (tests)
-
-```bash
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 uv pip install -e ".[dev]"
 ```
 
-This pulls optional dev dependencies (including `pytest`). Runtime simulation does not require `pytest`.
+## Running the Simulation
 
----
-
-## Run
-
-From the project root, with the virtual environment active:
+Execute the main package script from the root directory:
 
 ```bash
 python -m rocket_sim.cli
 ```
 
-### Fast mode
-
-Skips per-step sleep so a run finishes in seconds instead of several minutes. Console telemetry and CSV logging still run.
+### Fast Mode
+To skip per-step execution sleep cycles and complete the run in seconds, append the fast flag:
 
 ```bash
 python -m rocket_sim.cli --fast
 ```
 
-or:
-
-```bash
-uv run -m rocket_sim.cli --fast
-```
-
-Without `--fast`, the loop sleeps each step so the readout is watchable in roughly real time.
-
-### Stop at a phase
-
-End the run at a defined flight phase (useful for debugging and shorter CSVs):
+### Phased Runs
+To terminate execution at a specific flight milestone for debugging, utilize the until flag:
 
 ```bash
 python -m rocket_sim.cli --until MECO
 python -m rocket_sim.cli --fast --until SECO
 ```
-| Value | Behavior |
+
+| Phase Flag | Execution Behavior |
 | :--- | :--- |
-| **FULL** | runs until orbit coast. There is no closed-orbit propagation yet, so the simulation ends there by design. |
-| **MECO** | Stop at main-engine cutoff / stage 1 MECO |
-| **SECO** | Stop at second-engine cutoff |
+| **FULL** | Runs until orbit coast. The simulation ends here by design. |
+| **MECO** | Terminates execution at main-engine cutoff / Stage 1 MECO. |
+| **SECO** | Terminates execution at second-engine cutoff. |
 
----
+## Verification and Testing
 
-## Tests
-
-```bash
-uv pip install -e ".[dev]"  # if not already installed
-pytest
-```
-
-or:
+Execute the test suite using pytest to verify pitch initiation and guidance branch logic:
 
 ```bash
 uv run pytest
 ```
 
-Unit tests cover pitch initiation and stage 1 / stage 2 guidance (branch selection, rate limiting, throttle bias) without a full mission run.
+The testing suite automatically runs in continuous integration workflows on every push to the main branch.
 
-The same suite runs in CI on every push to `main` (see the **Actions** tab).
-
-</details>
----
 <details>
-    <summary>
-    <h3><b>Telemetry CSV</b></h3>
-    </summary>
+    <summary><h3><b>Features Specification</b></h3></summary>
 
-During a run, telemetry is appended every 100 steps (and once at the end) to a timestamped file:
+* Multi-stage vehicle with individual per-stage fuel and mass accounting.
+* State-machine flight phases tracking sequence: launch, pitch kick, ascent, staging, stage 2, and coast.
+* Configurable guidance parameters for pitch initiation and active staging programs.
+* Comprehensive force handling accounting for thrust, gravity, and atmospheric drag.
+* Fairing jettison milestones during optimal altitude windows.
+</details>
 
-The directory is created if missing. Generated CSV files are gitignored.
-CSVs are written under a phase folder based on `--until`:
+<details>
+    <summary><h3><b>Project Layout and Design Notes</b></h3></summary>
+
+```text
+src/rocket_sim/
+├── cli.py         # Entry point and core simulation loop
+├── utils.py       # CLI helpers, time formatting, and flag parsing
+├── config/        # Dataclasses and Falcon 9 vehicle data specifications
+├── models/        # Rocket, Stage models, and flight phase state machine
+├── guidance/      # Pitch initiation algorithms, stage 1 and stage 2 programs
+├── physics/       # Stateless aerodynamic forces and kinematics engine
+└── telemetry/     # Console telemetry formatters and CSV logging recorders
+
+tests/
+└── unit/          # Guidance and routing unit tests
+```
+
+### Component Breakdown
+
+| Operational Concern | Core Location |
+| :--- | :--- |
+| Masses, thrust curves, pitch schedules | `config/` and vehicle data modules |
+| Pitch programs and steering algorithms | `guidance/` as pure functions |
+| Flight phase sequencing and staging logic | `models/rocket.py` state machine |
+| Core physical helper functions | `physics/` |
+| Console reporting and CSV exports | `telemetry/` |
+
+* Guidance configuration inputs are defined in degrees; radian conversion is entirely isolated inside guidance runtime functions.
+* Runtime tracking data (remaining propellants, current pitch angle, state events) lives on active `Rocket` and `Stage` instances, ensuring structural configuration classes remain completely immutable.
+</details>
+
+<details>
+    <summary><h3><b>Telemetry Outputs and Analytics</b></h3></summary>
+
+During runtime execution, operational telemetry is appended every 100 steps to log files under targeted phase directories:
 
 ```text
 telemetry_data/data_MECO/
@@ -193,48 +121,23 @@ telemetry_data/data_SECO/
 telemetry_data/data_FULL/
 ```
 
----
-
-## Sample output
-
-After a run, CSVs land in `telemetry_data/`. You can generate a quick altitude history plot:
+### Data Visualization
+To compile, parse, and review historical flight performance graphs:
 
 ```bash
 python scripts/plot_run.py
 ```
-Plots from a run are saved under `docs/plot_MECO` (or `plot_SECO` / `plot_FULL`) to match the phase flag.
-Output folders for logs and plots follow the same phase tag so MECO/SECO/FULL runs stay separated.
 
-Flight data from a logged CSV run:
--Climb profile
--Energy build-up
--Trajectory shape
+Output plots map directly to tracking directories matching your execution parameters (`docs/plot_MECO`, `docs/plot_SECO`, etc.).
 
- **Flight Analysis Profile:** The telemetry plots distinctly show a flattening velocity curve mid-ascent (between 60s and 80s). This accurately reflects the vehicle throttling down to mitigate structural stress while passing through maximum aerodynamic pressure (Max-Q).
-    <details style="margin-left: 20px;">
-        <summary>
-        <b>Flight Analysis Profile:</b>
-        </summary>
-        <br>
-        ![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
-    </details>
+**Flight Analysis Profile:** Telemetry visualizations reflect a distinct flattening velocity curve mid-ascent between 60 seconds and 80 seconds. This profile indicates vehicle throttling to mitigate atmospheric structural stress while transiting through maximum aerodynamic pressure (Max-Q).
 
+![Altitude vs mission time](docs/flight_data_telemetry_sample.png)
 </details>
----
 
-## Configuration
+## Configuration Changes
 
-Edit `src/rocket_sim/config/falcon9_config.py` to tune:
-- Stage masses, thrust, burn rate
-- Pitch schedules and staging thresholds
-- Payload / fairing / reference area
-
----
-
-## Current limits
-
-- Reaches roughly orbital horizontal speed at high altitude, but does not model a circular orbit
-- No orbital insertion or closed-orbit propagation yet
-- Throttling schedules are completely abstracted out of core execution files into configuration dataclass components. Telemetry loop decoupling remains ongoing.
-
----
+Modify the definitions within `src/rocket_sim/config/falcon9_config.py` to change parameters:
+* Stage structural masses, dry weights, fuel totals, and engine burn capacities.
+* Pitch program triggering parameters and structural separation thresholds.
+* Payload configurations, payload fairing masses, and aerodynamic reference target areas.
