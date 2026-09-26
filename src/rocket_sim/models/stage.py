@@ -42,7 +42,7 @@ class Stage:
     
 
     def update(self, dt):
-        if self.is_ignited() or self.is_throttled() and self.current_fuel_mass > 0:
+        if (self.is_ignited() or self.is_throttled()) and self.current_fuel_mass > 0:
             self.current_burn_rate = self.stage_config.burn_rate * self.throttle
 
             fuel_consumed = self.current_burn_rate * dt

@@ -360,9 +360,10 @@ class Rocket:
                 goal_fraction = self.target_thrust_fraction  # Max thrust
             
             #Manage G limit and total velocity throttling
-            if self.is_ascent_burn:
+            max_total_vel = 1950
+            if self.is_ascent_burn():
                 max_total_vel = 1950
-            elif self.is_stage2_ascent:
+            elif self.is_stage2_ascent():
                 max_total_vel = 7650
 
             if self.total_accel > SimConfig.g_limit or self.total_velocity > max_total_vel:
@@ -460,10 +461,6 @@ class Rocket:
     
     def is_orbit_coast(self):
         return self.state == rocket_state.ORBIT_COAST
-
-    # ────────────────────────────────────────────────
-    # Receive telemetry data and format in to readable data
-    # ────────────────────────────────────────────────
 
     def get_telemetry(self):
         telemetry_data    = {}

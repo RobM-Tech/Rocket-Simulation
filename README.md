@@ -5,7 +5,7 @@ A physics-based, multi-stage rocket simulation in Python. This project focuses o
 
 **Important Note:** Full orbital insertion and closed-orbit circularization propagation are not implemented yet.
 
-**Version 1.3.0** — Packaged layout, configuration-driven vehicle parameters, extracted flight profile boundaries, console and CSV telemetry, CLI fast mode, and stateless kinematics unit testing.
+**Version 1.3.0** — Packaged layout, configuration-driven vehicle parameters, extracted flight profile boundaries, console and CSV telemetry, CLI fast mode, and stateless kinematics.
 
 ## Core Architectural Concepts
 

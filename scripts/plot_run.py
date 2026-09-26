@@ -59,5 +59,3 @@ def plot_csv_data(tag):
 
     plt.savefig(out, dpi=150, bbox_inches="tight")
 
-if __name__ == "__main__":
-    plot_csv_data()
