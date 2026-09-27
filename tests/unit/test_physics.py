@@ -1,4 +1,4 @@
-import math
+
 import pytest
 
 from rocket_sim.physics.physics import total_velocity, air_density, dynamic_pressure
