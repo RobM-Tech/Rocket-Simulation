@@ -5,13 +5,15 @@ from rocket_sim.physics.physics import total_velocity, air_density, dynamic_pres
 
 # Test total velocity
 
-def test_total_velocity_rejects_neg_vx():
-    with pytest.raises(ValueError, match="Horizontal velocity cannot be negative; direction is incorrect."):
-        total_velocity(vx=-100, vy=300)
+def test_total_velocity_not_affected_by_neg():
+    neg_result = total_velocity(vx=-3.0, vy=-4.0)
+    pos_result = total_velocity(vx=3.0, vy=4.0)
 
-def test_total_velocity_rejects_neg_vy():
-    with pytest.raises(ValueError, match="Vertical velocity cannot be negative; critical failure, vehicle is falling."):
-        total_velocity(vx=100, vy=-100)
+    expected = 5.0
+
+    assert neg_result == pytest.approx(expected)
+    assert neg_result == pos_result
+
 
 def test_total_velocity_one_direc():
     y_result = total_velocity(vx=0.0, vy=300.0)
@@ -35,6 +37,14 @@ def test_air_density_at_sea_level():
     result = air_density(y=0.0)
 
     expected = 1.225 # kg/m^3 - Sea level reference density
+
+    assert result == pytest.approx(expected)
+
+def test_air_density_below_sea_level():
+    result = air_density(y=-100.0)
+
+    expected = 1.225 # kg/m^3 - Sea level reference density
+    # This is expected due to clamp in function
 
     assert result == pytest.approx(expected)
 

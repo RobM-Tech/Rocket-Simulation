@@ -35,10 +35,6 @@ def velocity_unit_vec(vx, vy, t_velocity):
 
 def total_velocity(vx, vy):
     """Calculates absolute velocity magnitude from horizontal and vertical components."""
-    if vx < 0.0:
-        raise ValueError("Horizontal velocity cannot be negative; direction is incorrect.")
-    if vy < 0.0:
-        raise ValueError("Vertical velocity cannot be negative; critical failure, vehicle is falling.")
         
     return math.sqrt((vx**2) + (vy**2))
 
@@ -62,6 +58,8 @@ def air_density(y):
     
     Clamps bounds early to avoid mathematical domain errors at flight extremes.
     """
+    y = max(y, 0.0)
+    
     if y >= 150_000:
         return 0.0
 
