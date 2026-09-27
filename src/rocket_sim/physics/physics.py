@@ -59,11 +59,11 @@ def air_density(y):
     """
     if y < 0:
         y = 0.0
-    if y > 150_000:
+    if y >= 150_000:
         return 0.0
 
     rho0 = 1.225   # kg/m^3 - Sea level reference density
-    H = 8500       # m - Scale height for exponential decay model
+    H = 8500.0       # m - Scale height for exponential decay model
     return rho0 * math.exp(-y / H)
 
 
